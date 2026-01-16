@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'ctm' => [
+        'base_url' => env('CTM_API_BASE_URL', 'https://api.calltrackingmetrics.com/api/v1'),
+    ],
+
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+    ],
+
+    'deepgram' => [
+        'api_key' => env('DEEPGRAM_API_KEY'),
+    ],
+
 ];
