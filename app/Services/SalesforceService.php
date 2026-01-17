@@ -241,8 +241,33 @@ class SalesforceService
             $rep = Rep::where('sf_user_id', $chance['OwnerId'])
                       ->where('account_id', $call->account_id)
                       ->first();
+            
             if ($rep) {
                 $call->update(['rep_id' => $rep->id]);
+            } else {
+                // Auto-create Rep from Salesforce User
+                $ownerId = $chance['OwnerId'];
+                $escapedOwnerId = str_replace("'", "\\'", $ownerId);
+                $soql = "SELECT Id, Name, Email FROM User WHERE Id = '{$escapedOwnerId}' LIMIT 1";
+                $results = $this->query($soql);
+                $sfUser = $results['records'][0] ?? null;
+                
+                if ($sfUser) {
+                    $rep = Rep::create([
+                        'account_id' => $call->account_id,
+                        'name' => $sfUser['Name'],
+                        'email' => $sfUser['Email'] ?? null,
+                        'sf_user_id' => $sfUser['Id'],
+                        'is_active' => true,
+                    ]);
+                    
+                    Log::info('Auto-created Rep: {name} from SF User {id}', [
+                        'name' => $rep->name,
+                        'id' => $sfUser['Id'],
+                    ]);
+                    
+                    $call->update(['rep_id' => $rep->id]);
+                }
             }
         }
 
@@ -252,7 +277,22 @@ class SalesforceService
             $project = Project::where('sf_project_name', $sfProject)
                               ->where('account_id', $call->account_id)
                               ->first();
+            
             if ($project) {
+                $call->update(['project_id' => $project->id]);
+            } else {
+                // Auto-create Project from Salesforce Project__c value
+                $project = Project::create([
+                    'account_id' => $call->account_id,
+                    'name' => $sfProject,
+                    'sf_project_name' => $sfProject,
+                    'is_active' => true,
+                ]);
+                
+                Log::info('Auto-created Project: {name} from SF', [
+                    'name' => $project->name,
+                ]);
+                
                 $call->update(['project_id' => $project->id]);
             }
         }
