@@ -76,9 +76,40 @@ class MagicLinkController extends Controller
     }
 
     /**
-     * Verify magic link and log user in
+     * Show verification page (GET) - doesn't log in, prevents email scanner consumption
      */
     public function verify(string $token)
+    {
+        $magicLink = MagicLink::where('token', $token)->first();
+
+        if (!$magicLink) {
+            return view('auth.verify', [
+                'valid' => false,
+                'error' => 'Invalid login link.',
+                'token' => $token,
+            ]);
+        }
+
+        if (!$magicLink->isValid()) {
+            return view('auth.verify', [
+                'valid' => false,
+                'error' => 'This login link has expired. Please request a new one.',
+                'token' => $token,
+            ]);
+        }
+
+        // Show confirmation page - user must click button to actually log in
+        return view('auth.verify', [
+            'valid' => true,
+            'token' => $token,
+            'user' => $magicLink->user,
+        ]);
+    }
+
+    /**
+     * Process verification and log user in (POST) - actual login happens here
+     */
+    public function processVerify(Request $request, string $token)
     {
         $magicLink = MagicLink::where('token', $token)->first();
 

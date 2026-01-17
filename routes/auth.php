@@ -8,6 +8,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [MagicLinkController::class, 'showLogin'])->name('login');
     Route::post('/login', [MagicLinkController::class, 'sendLink'])->name('login.send');
     Route::get('/login/verify/{token}', [MagicLinkController::class, 'verify'])->name('login.verify');
+    Route::post('/login/verify/{token}', [MagicLinkController::class, 'processVerify'])->name('login.verify.process');
 });
 
 // Authenticated routes
