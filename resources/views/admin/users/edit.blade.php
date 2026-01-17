@@ -6,32 +6,32 @@
     <title>Edit User - Call Grader</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-[#f9fafb] min-h-screen">
     @include('admin.partials.nav')
 
-    <div class="max-w-2xl mx-auto px-4 py-6">
+    <div class="max-w-2xl mx-auto px-8 py-6">
         <div class="mb-6">
-            <a href="{{ route('admin.users.index') }}" class="text-gray-500 hover:text-gray-700 text-sm">
+            <a href="{{ route('admin.users.index') }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                 &larr; Back to Users
             </a>
-            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit User</h1>
+            <h1 class="text-xl font-semibold text-gray-900 mt-2">Edit User</h1>
         </div>
 
         @if (session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4">
                 {{ session('success') }}
             </div>
         @endif
 
         @if (session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
                 {{ session('error') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                <ul class="list-disc list-inside">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+                <ul class="list-disc list-inside text-sm">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -39,7 +39,7 @@
             </div>
         @endif
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <form method="POST" action="{{ route('admin.users.update', $user) }}">
                 @csrf
                 @method('PATCH')
@@ -52,7 +52,7 @@
                             type="text"
                             name="name"
                             value="{{ old('name', $user->name) }}"
-                            class="w-full border rounded px-3 py-2"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required
                         />
                     </div>
@@ -64,7 +64,7 @@
                             type="email"
                             name="email"
                             value="{{ old('email', $user->email) }}"
-                            class="w-full border rounded px-3 py-2"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required
                         />
                     </div>
@@ -74,7 +74,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <select
                             name="role"
-                            class="w-full border rounded px-3 py-2"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             {{ $canEditRole ? '' : 'disabled' }}
                         >
                             <option value="manager" {{ old('role', $user->role) == 'manager' ? 'selected' : '' }}>Manager</option>
@@ -99,7 +99,7 @@
                                 name="is_active"
                                 value="1"
                                 {{ old('is_active', $user->is_active) ? 'checked' : '' }}
-                                class="rounded border-gray-300"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
                             <span class="text-sm font-medium text-gray-700">Active</span>
                         </label>
@@ -109,7 +109,7 @@
                     <!-- Offices -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Assigned Offices</label>
-                        <div class="border rounded p-3 max-h-48 overflow-y-auto space-y-2">
+                        <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                             @foreach($accounts as $account)
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input
@@ -117,9 +117,9 @@
                                         name="account_ids[]"
                                         value="{{ $account->id }}"
                                         {{ in_array($account->id, old('account_ids', $user->accounts->pluck('id')->toArray())) ? 'checked' : '' }}
-                                        class="rounded border-gray-300"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
-                                    <span class="text-sm">{{ $account->name }}</span>
+                                    <span class="text-sm text-gray-700">{{ $account->name }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -133,7 +133,7 @@
                         @csrf
                         <button
                             type="submit"
-                            class="px-4 py-2 text-red-600 hover:text-red-800"
+                            class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                             onclick="return confirm('{{ $user->is_active ? 'Deactivate' : 'Activate' }} this user?')"
                         >
                             {{ $user->is_active ? 'Deactivate User' : 'Activate User' }}
@@ -142,13 +142,13 @@
                     <div class="flex gap-3">
                         <a
                             href="{{ route('admin.users.index') }}"
-                            class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50"
+                            class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                             Cancel
                         </a>
                         <button
                             type="submit"
-                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         >
                             Save Changes
                         </button>

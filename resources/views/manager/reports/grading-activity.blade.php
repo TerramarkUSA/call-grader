@@ -6,23 +6,23 @@
     <title>Grading Activity Report - Call Grader</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-[#f9fafb] min-h-screen">
     @include('manager.partials.nav')
 
-    <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="max-w-7xl mx-auto px-8 py-6">
         <!-- Header -->
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">My Grading Activity</h1>
-            <p class="text-gray-600">Track your grading volume and patterns</p>
+            <h1 class="text-xl font-semibold text-gray-900">My Grading Activity</h1>
+            <p class="text-sm text-gray-500">Track your grading volume and patterns</p>
         </div>
 
         <!-- Filters -->
-        <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <form method="GET" action="{{ route('manager.reports.grading-activity') }}">
                 <div class="flex gap-4 items-end flex-wrap">
                     <div>
-                        <label class="block text-sm text-gray-600 mb-1">Period</label>
-                        <select name="period" class="border rounded px-3 py-2 text-sm">
+                        <label class="block text-sm text-gray-500 mb-1">Period</label>
+                        <select name="period" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="7" {{ $filters['period'] == '7' ? 'selected' : '' }}>Last 7 days</option>
                             <option value="30" {{ $filters['period'] == '30' ? 'selected' : '' }}>Last 30 days</option>
                             <option value="90" {{ $filters['period'] == '90' ? 'selected' : '' }}>Last 90 days</option>
@@ -30,9 +30,9 @@
                     </div>
                     <button
                         type="submit"
-                        class="bg-blue-600 text-white rounded px-4 py-2 text-sm hover:bg-blue-700"
+                        class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
                     >
-                        Apply
+                        Apply Filters
                     </button>
                 </div>
             </form>
@@ -40,26 +40,26 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow p-4 text-center">
-                <p class="text-3xl font-bold text-gray-900">{{ $stats['total_period'] }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                <p class="text-3xl font-semibold text-gray-900">{{ $stats['total_period'] }}</p>
                 <p class="text-sm text-gray-500">Total Graded</p>
             </div>
-            <div class="bg-white rounded-lg shadow p-4 text-center">
-                <p class="text-3xl font-bold text-blue-600">{{ $stats['daily_average'] }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                <p class="text-3xl font-semibold text-blue-600">{{ $stats['daily_average'] }}</p>
                 <p class="text-sm text-gray-500">Daily Average</p>
             </div>
-            <div class="bg-white rounded-lg shadow p-4 text-center">
-                <p class="text-3xl font-bold text-green-600">{{ $stats['best_day'] }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                <p class="text-3xl font-semibold text-green-600">{{ $stats['best_day'] }}</p>
                 <p class="text-sm text-gray-500">Best Day</p>
             </div>
-            <div class="bg-white rounded-lg shadow p-4 text-center">
-                <p class="text-3xl font-bold text-orange-600">{{ $stats['streak'] }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                <p class="text-3xl font-semibold text-yellow-600">{{ $stats['streak'] }}</p>
                 <p class="text-sm text-gray-500">Current Streak</p>
             </div>
         </div>
 
         <!-- Activity Chart -->
-        <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <h3 class="font-medium text-gray-900 mb-4">Daily Activity</h3>
             @php
                 $maxDaily = max(array_values($activityData)) ?: 1;
@@ -82,7 +82,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Hourly Distribution -->
-            <div class="bg-white rounded-lg shadow p-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="font-medium text-gray-900 mb-4">Time of Day</h3>
                 @php
                     $maxHourly = max(array_values($hourlyDistribution)) ?: 1;
@@ -93,7 +93,7 @@
                             $count = $hourlyDistribution[$hour] ?? 0;
                         @endphp
                         <div
-                            class="flex-1 bg-purple-500 rounded-t"
+                            class="flex-1 bg-purple-500 rounded-t hover:bg-purple-600 transition-colors"
                             style="height: {{ ($count / $maxHourly) * 90 }}%; min-height: {{ $count > 0 ? '2px' : '0' }}"
                             title="{{ $hour < 12 ? ($hour == 0 ? '12' : $hour) . 'am' : ($hour == 12 ? '12' : $hour - 12) . 'pm' }}: {{ $count }}"
                         ></div>
@@ -109,7 +109,7 @@
             </div>
 
             <!-- Day of Week Distribution -->
-            <div class="bg-white rounded-lg shadow p-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="font-medium text-gray-900 mb-4">Day of Week</h3>
                 @php
                     $maxDay = max(array_values($dayOfWeekDistribution)) ?: 1;
@@ -121,14 +121,14 @@
                             $count = $dayOfWeekDistribution[$day] ?? 0;
                         @endphp
                         <div class="flex items-center gap-2">
-                            <span class="w-8 text-sm text-gray-600">{{ $dayNames[$day - 1] }}</span>
-                            <div class="flex-1 h-6 bg-gray-100 rounded overflow-hidden">
+                            <span class="w-8 text-sm text-gray-500">{{ $dayNames[$day - 1] }}</span>
+                            <div class="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden">
                                 <div
-                                    class="h-full bg-green-500 rounded"
+                                    class="h-full bg-green-500 rounded-lg"
                                     style="width: {{ ($count / $maxDay) * 100 }}%"
                                 ></div>
                             </div>
-                            <span class="w-8 text-sm text-gray-600 text-right">{{ $count }}</span>
+                            <span class="w-8 text-sm text-gray-500 text-right">{{ $count }}</span>
                         </div>
                     @endfor
                 </div>

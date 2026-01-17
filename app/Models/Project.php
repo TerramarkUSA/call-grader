@@ -11,8 +11,7 @@ class Project extends Model
     protected $fillable = [
         'account_id',
         'name',
-        'salesforce_id',
-        'external_id',
+        'sf_project_name',
         'is_active',
     ];
 

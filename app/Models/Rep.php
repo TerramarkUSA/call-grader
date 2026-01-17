@@ -11,8 +11,8 @@ class Rep extends Model
     protected $fillable = [
         'account_id',
         'name',
-        'salesforce_id',
-        'external_id',
+        'email',
+        'sf_user_id',
         'is_active',
     ];
 

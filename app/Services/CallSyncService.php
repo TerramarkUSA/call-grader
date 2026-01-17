@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Call;
+use App\Jobs\EnrichCallFromSalesforce;
 use Illuminate\Support\Facades\Log;
 
 class CallSyncService
@@ -98,6 +99,7 @@ class CallSyncService
             'caller_name' => $this->extractCallerName($ctmCall),
             'caller_number' => $ctmCall['caller_number'] ?? $ctmCall['calling_number'] ?? 'Unknown',
             'talk_time' => $this->extractTalkTime($ctmCall),
+            'ring_time' => $this->extractRingTime($ctmCall),
             'dial_status' => $this->mapDialStatus($ctmCall),
             'source' => $ctmCall['source'] ?? $ctmCall['tracking_source'] ?? null,
             'called_at' => $this->parseDateTime($ctmCall['called_at'] ?? $ctmCall['start_time'] ?? now()),
@@ -116,7 +118,14 @@ class CallSyncService
         }
 
         // Create new call
-        Call::create($callData);
+        $call = Call::create($callData);
+
+        // Dispatch Salesforce enrichment job (15 min delay)
+        if ($this->account->sf_connected_at) {
+            EnrichCallFromSalesforce::dispatch($call)
+                ->delay(now()->addMinutes(15));
+        }
+
         return 'created';
     }
 
@@ -145,6 +154,24 @@ class CallSyncService
         }
         if (isset($ctmCall['duration'])) {
             return $this->parseTimeToSeconds($ctmCall['duration']);
+        }
+        return 0;
+    }
+
+    /**
+     * Extract ring time in seconds (time before answer)
+     */
+    protected function extractRingTime(array $ctmCall): int
+    {
+        // CTM may return ring_time, ring_duration, or ring_time_seconds
+        if (isset($ctmCall['ring_time'])) {
+            return $this->parseTimeToSeconds($ctmCall['ring_time']);
+        }
+        if (isset($ctmCall['ring_time_seconds'])) {
+            return (int) $ctmCall['ring_time_seconds'];
+        }
+        if (isset($ctmCall['ring_duration'])) {
+            return $this->parseTimeToSeconds($ctmCall['ring_duration']);
         }
         return 0;
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Manager\CallAnalyticsController;
 use App\Http\Controllers\Manager\CallQueueController;
 use App\Http\Controllers\Manager\CoachingNoteController;
 use App\Http\Controllers\Manager\DashboardController;
@@ -21,6 +22,8 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::get('/reports/category-breakdown', [ReportsController::class, 'categoryBreakdown'])->name('reports.category-breakdown');
     Route::get('/reports/objection-analysis', [ReportsController::class, 'objectionAnalysis'])->name('reports.objection-analysis');
     Route::get('/reports/grading-activity', [ReportsController::class, 'gradingActivity'])->name('reports.grading-activity');
+    Route::get('/reports/call-analytics', [CallAnalyticsController::class, 'index'])->name('reports.call-analytics');
+    Route::get('/reports/call-analytics/export', [CallAnalyticsController::class, 'export'])->name('reports.call-analytics.export');
 
     // Call Queue
     Route::get('/calls', [CallQueueController::class, 'index'])->name('calls.index');
@@ -41,6 +44,8 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::get('/calls/{call}/audio-stream', [GradingController::class, 'audio'])->name('calls.audio-stream');
     Route::post('/calls/{call}/no-appointment', [GradingController::class, 'saveNoAppointmentReason'])->name('calls.no-appointment');
     Route::post('/calls/{call}/swap-speakers', [GradingController::class, 'swapSpeakers'])->name('calls.swap-speakers');
+    Route::patch('/calls/{call}/details', [GradingController::class, 'updateCallDetails'])->name('calls.update-details');
+    Route::post('/calls/{call}/refresh-salesforce', [GradingController::class, 'refreshSalesforce'])->name('calls.refresh-salesforce');
 
     // Coaching Notes (API for grading page)
     Route::get('/notes/form-data', [CoachingNoteController::class, 'formData'])->name('notes.form-data');

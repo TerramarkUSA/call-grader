@@ -38,15 +38,20 @@ class CallQueueController extends Controller
             ->where('call_quality', 'pending')
             ->with(['rep', 'project']);
 
-        // Date filter (default: last 14 days for queue, up to 90 for search)
+        // Parse date filter
         $dateFilter = $request->get('date_filter', '14');
-        $showingSearch = $request->has('search') || $request->get('date_filter') === 'all';
+        $customStart = $request->get('date_start');
+        $customEnd = $request->get('date_end');
+        $showingSearch = $request->has('search');
 
-        if ($dateFilter === 'all') {
-            $query->where('called_at', '>=', now()->subDays(90));
-        } else {
-            $query->where('called_at', '>=', now()->subDays((int) $dateFilter));
-        }
+        // Calculate date range based on filter
+        $dateRange = $this->getDateRange($dateFilter, $customStart, $customEnd);
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
+
+        // Apply date filter to main query
+        $query->where('called_at', '>=', $startDate)
+              ->where('called_at', '<=', $endDate);
 
         // Search
         if ($request->filled('search')) {
@@ -67,13 +72,13 @@ class CallQueueController extends Controller
             $query->where('project_id', $request->get('project_id'));
         }
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('dial_status', $request->get('status'));
+        // Filter by display status (derived from dial_status + talk_time)
+        if ($request->filled('display_status')) {
+            $query->displayStatus($request->get('display_status'));
         }
 
-        // Get calls
-        $calls = $query->orderBy('called_at', 'desc')->paginate(25);
+        // Get calls - withQueryString preserves filters across pagination
+        $calls = $query->orderBy('called_at', 'desc')->paginate(25)->withQueryString();
 
         // Calculate days old for visual aging
         $calls->getCollection()->transform(function ($call) {
@@ -87,19 +92,37 @@ class CallQueueController extends Controller
         $reps = Rep::where('account_id', $selectedAccount->id)->where('is_active', true)->orderBy('name')->get();
         $projects = Project::where('account_id', $selectedAccount->id)->where('is_active', true)->orderBy('name')->get();
 
-        // Queue stats
+        // Base query for queue stats - uses same date range as main query
+        $baseStatsQuery = Call::where('account_id', $selectedAccount->id)
+            ->whereNull('ignored_at')
+            ->where('call_quality', 'pending')
+            ->where('called_at', '>=', $startDate)
+            ->where('called_at', '<=', $endDate);
+
+        // Queue stats with counts per display status
         $stats = [
-            'total_in_queue' => Call::where('account_id', $selectedAccount->id)
-                ->whereNull('ignored_at')
-                ->where('call_quality', 'pending')
-                ->where('called_at', '>=', now()->subDays(14))
-                ->count(),
-            'expiring_soon' => Call::where('account_id', $selectedAccount->id)
-                ->whereNull('ignored_at')
-                ->where('call_quality', 'pending')
-                ->whereBetween('called_at', [now()->subDays(14), now()->subDays(10)])
-                ->count(),
+            'total' => (clone $baseStatsQuery)->count(),
+            'conversation' => (clone $baseStatsQuery)->displayStatus('conversation')->count(),
+            'short_call' => (clone $baseStatsQuery)->displayStatus('short_call')->count(),
+            'no_conversation' => (clone $baseStatsQuery)->displayStatus('no_conversation')->count(),
+            'abandoned' => (clone $baseStatsQuery)->displayStatus('abandoned')->count(),
+            'voicemail' => (clone $baseStatsQuery)->displayStatus('voicemail')->count(),
+            'missed' => (clone $baseStatsQuery)->displayStatus('missed')->count(),
+            'busy' => (clone $baseStatsQuery)->displayStatus('busy')->count(),
         ];
+
+        // Summary stats - within the selected date range
+        $summaryStats = [
+            'avg_duration' => (int) ((clone $baseStatsQuery)
+                ->where('talk_time', '>', 0)
+                ->avg('talk_time') ?? 0),
+        ];
+
+        // Date range label for display
+        $dateRangeLabel = $this->getDateRangeLabel($dateFilter, $startDate, $endDate);
+
+        // Display status options for filter
+        $displayStatuses = Call::DISPLAY_STATUSES;
 
         return view('manager.calls.index', compact(
             'accounts',
@@ -108,7 +131,13 @@ class CallQueueController extends Controller
             'reps',
             'projects',
             'stats',
-            'showingSearch'
+            'summaryStats',
+            'showingSearch',
+            'displayStatuses',
+            'dateFilter',
+            'dateRangeLabel',
+            'startDate',
+            'endDate'
         ));
     }
 
@@ -223,5 +252,65 @@ class CallQueueController extends Controller
         $showWarning = $call->talk_time < 30;
 
         return view('manager.calls.process', compact('call', 'showWarning'));
+    }
+
+    /**
+     * Get date range based on filter selection
+     */
+    protected function getDateRange(string $filter, ?string $customStart, ?string $customEnd): array
+    {
+        $end = now()->endOfDay();
+
+        return match ($filter) {
+            'today' => [
+                'start' => now()->startOfDay(),
+                'end' => $end,
+            ],
+            'yesterday' => [
+                'start' => now()->subDay()->startOfDay(),
+                'end' => now()->subDay()->endOfDay(),
+            ],
+            '7' => [
+                'start' => now()->subDays(7)->startOfDay(),
+                'end' => $end,
+            ],
+            '14' => [
+                'start' => now()->subDays(14)->startOfDay(),
+                'end' => $end,
+            ],
+            '30' => [
+                'start' => now()->subDays(30)->startOfDay(),
+                'end' => $end,
+            ],
+            '90' => [
+                'start' => now()->subDays(90)->startOfDay(),
+                'end' => $end,
+            ],
+            'custom' => [
+                'start' => $customStart ? Carbon::parse($customStart)->startOfDay() : now()->subDays(14)->startOfDay(),
+                'end' => $customEnd ? Carbon::parse($customEnd)->endOfDay() : $end,
+            ],
+            default => [
+                'start' => now()->subDays(14)->startOfDay(),
+                'end' => $end,
+            ],
+        };
+    }
+
+    /**
+     * Get human-readable label for the date range
+     */
+    protected function getDateRangeLabel(string $filter, Carbon $start, Carbon $end): string
+    {
+        return match ($filter) {
+            'today' => 'Today',
+            'yesterday' => 'Yesterday',
+            '7' => 'Last 7 days',
+            '14' => 'Last 14 days',
+            '30' => 'Last 30 days',
+            '90' => 'Last 90 days',
+            'custom' => $start->format('M j') . ' - ' . $end->format('M j, Y'),
+            default => 'Last 14 days',
+        };
     }
 }

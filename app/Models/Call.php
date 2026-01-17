@@ -14,6 +14,7 @@ class Call extends Model
         'caller_name',
         'caller_number',
         'talk_time',
+        'ring_time',
         'dial_status',
         'source',
         'called_at',
@@ -32,6 +33,19 @@ class Call extends Model
         'transcript',
         'transcription_quality',
         'speakers_swapped',
+        // Salesforce fields
+        'sf_chance_id',
+        'sf_lead_id',
+        'sf_owner_id',
+        'sf_project',
+        'sf_land_sale',
+        'sf_contact_status',
+        'sf_appointment_made',
+        'sf_toured_property',
+        'sf_opportunity_created',
+        'sf_synced_at',
+        'sf_outcome_synced_at',
+        'sf_sync_attempts',
     ];
 
     protected $casts = [
@@ -41,7 +55,126 @@ class Call extends Model
         'processed_at' => 'datetime',
         'transcript' => 'array',
         'speakers_swapped' => 'boolean',
+        // Salesforce casts
+        'sf_appointment_made' => 'boolean',
+        'sf_toured_property' => 'boolean',
+        'sf_opportunity_created' => 'boolean',
+        'sf_synced_at' => 'datetime',
+        'sf_outcome_synced_at' => 'datetime',
     ];
+
+    /**
+     * Display status labels
+     */
+    public const DISPLAY_STATUSES = [
+        'conversation' => 'Conversation',
+        'short_call' => 'Short Call',
+        'no_conversation' => 'No Conversation',
+        'voicemail' => 'Voicemail',
+        'missed' => 'Missed',
+        'abandoned' => 'Abandoned',
+        'busy' => 'Busy',
+    ];
+
+    /**
+     * Get the derived display status based on dial_status and talk_time
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        // Map dial_status to display status
+        return match ($this->dial_status) {
+            'voicemail' => 'voicemail',
+            'no_answer', 'missed' => 'missed',
+            'abandoned' => 'abandoned',
+            'busy' => 'busy',
+            'answered', 'completed', 'received' => $this->getAnsweredDisplayStatus(),
+            // For any other dial_status, categorize by talk_time
+            default => $this->getAnsweredDisplayStatus(),
+        };
+    }
+
+    /**
+     * Get display status for answered calls based on talk_time
+     */
+    protected function getAnsweredDisplayStatus(): string
+    {
+        $talkTime = $this->talk_time ?? 0;
+
+        return match (true) {
+            $talkTime === 0 => 'abandoned',      // Instant hangup / accidental click
+            $talkTime <= 10 => 'no_conversation', // 1-10 seconds
+            $talkTime <= 60 => 'short_call',      // 10-60 seconds
+            default => 'conversation',            // > 60 seconds
+        };
+    }
+
+    /**
+     * Get the display status label
+     */
+    public function getDisplayStatusLabelAttribute(): string
+    {
+        return self::DISPLAY_STATUSES[$this->display_status] ?? 'Unknown';
+    }
+
+    /**
+     * Get the display status color classes for badges
+     */
+    public function getDisplayStatusColorAttribute(): string
+    {
+        return match ($this->display_status) {
+            'conversation' => 'bg-green-100 text-green-700',
+            'short_call' => 'bg-yellow-100 text-yellow-700',
+            'no_conversation' => 'bg-red-100 text-red-700',
+            'voicemail' => 'bg-purple-100 text-purple-700',
+            'missed' => 'bg-gray-100 text-gray-600',
+            'abandoned' => 'bg-orange-100 text-orange-700',
+            'busy' => 'bg-gray-100 text-gray-600',
+            default => 'bg-gray-100 text-gray-600',
+        };
+    }
+
+    /**
+     * Scope to filter by display status
+     */
+    public function scopeDisplayStatus($query, string $status)
+    {
+        // Known dial_status values that map to specific categories
+        $answeredStatuses = ['answered', 'completed', 'received'];
+        $knownStatuses = array_merge($answeredStatuses, ['voicemail', 'no_answer', 'missed', 'abandoned', 'busy']);
+
+        return match ($status) {
+            'conversation' => $query->where('talk_time', '>', 60)
+                ->where(function ($q) use ($answeredStatuses, $knownStatuses) {
+                    $q->whereIn('dial_status', $answeredStatuses)
+                      ->orWhereNotIn('dial_status', $knownStatuses);
+                }),
+            'short_call' => $query->where('talk_time', '>', 10)->where('talk_time', '<=', 60)
+                ->where(function ($q) use ($answeredStatuses, $knownStatuses) {
+                    $q->whereIn('dial_status', $answeredStatuses)
+                      ->orWhereNotIn('dial_status', $knownStatuses);
+                }),
+            'no_conversation' => $query->where('talk_time', '>', 0)->where('talk_time', '<=', 10)
+                ->where(function ($q) use ($answeredStatuses, $knownStatuses) {
+                    $q->whereIn('dial_status', $answeredStatuses)
+                      ->orWhereNotIn('dial_status', $knownStatuses);
+                }),
+            'abandoned' => $query->where(function ($q) use ($answeredStatuses, $knownStatuses) {
+                // Abandoned from dial_status OR any status with 0 talk_time (except voicemail/missed/busy)
+                $q->where('dial_status', 'abandoned')
+                  ->orWhere(function ($q2) use ($answeredStatuses, $knownStatuses) {
+                      $q2->where('talk_time', 0)
+                         ->where(function ($q3) use ($answeredStatuses, $knownStatuses) {
+                             $q3->whereIn('dial_status', $answeredStatuses)
+                                ->orWhereNotIn('dial_status', $knownStatuses);
+                         });
+                  });
+            }),
+            'voicemail' => $query->where('dial_status', 'voicemail'),
+            'missed' => $query->whereIn('dial_status', ['no_answer', 'missed']),
+            'busy' => $query->where('dial_status', 'busy'),
+            default => $query,
+        };
+    }
 
     public function account(): BelongsTo
     {
