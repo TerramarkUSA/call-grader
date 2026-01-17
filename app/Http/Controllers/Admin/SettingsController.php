@@ -18,9 +18,6 @@ class SettingsController extends Controller
     {
         $settings = [
             'deepgram_api_key' => Setting::get('deepgram_api_key') ? '••••••••' : '',
-            'sendgrid_api_key' => Setting::get('sendgrid_api_key') ? '••••••••' : '',
-            'sendgrid_from_email' => Setting::get('sendgrid_from_email', ''),
-            'sendgrid_from_name' => Setting::get('sendgrid_from_name', 'Call Grader'),
             'grading_quality_flag_threshold' => Setting::get('grading_quality_flag_threshold', '25'),
             'grading_quality_suspicious_threshold' => Setting::get('grading_quality_suspicious_threshold', '50'),
             'cost_alert_daily_threshold' => Setting::get('cost_alert_daily_threshold', '50'),
@@ -45,26 +42,11 @@ class SettingsController extends Controller
     {
         $request->validate([
             'deepgram_api_key' => 'nullable|string',
-            'sendgrid_api_key' => 'nullable|string',
-            'sendgrid_from_email' => 'nullable|email',
-            'sendgrid_from_name' => 'nullable|string',
         ]);
 
         // Only update if value provided (not the masked placeholder)
         if ($request->filled('deepgram_api_key') && $request->deepgram_api_key !== '••••••••') {
             Setting::setEncrypted('deepgram_api_key', $request->deepgram_api_key);
-        }
-
-        if ($request->filled('sendgrid_api_key') && $request->sendgrid_api_key !== '••••••••') {
-            Setting::setEncrypted('sendgrid_api_key', $request->sendgrid_api_key);
-        }
-
-        if ($request->filled('sendgrid_from_email')) {
-            Setting::set('sendgrid_from_email', $request->sendgrid_from_email);
-        }
-
-        if ($request->filled('sendgrid_from_name')) {
-            Setting::set('sendgrid_from_name', $request->sendgrid_from_name);
         }
 
         return back()->with('success', 'API settings updated.');
@@ -155,31 +137,30 @@ class SettingsController extends Controller
     }
 
     /**
-     * Test SendGrid email configuration
+     * Test email configuration (Mailgun)
      */
     public function testEmail()
     {
-        $sendgridApiKey = Setting::getEncrypted('sendgrid_api_key');
-        $fromEmail = Setting::get('sendgrid_from_email');
-
-        if (!$sendgridApiKey) {
-            return back()->with('error', 'SendGrid API key not configured.');
-        }
-
-        if (!$fromEmail) {
-            return back()->with('error', 'SendGrid from email not configured.');
-        }
-
         $testEmail = auth()->user()->email;
+        $fromEmail = config('mail.from.address');
 
-        Log::info('Testing SendGrid email configuration', [
+        if (!$fromEmail || $fromEmail === 'hello@example.com') {
+            return back()->with('error', 'MAIL_FROM_ADDRESS not configured in environment.');
+        }
+
+        if (!config('services.mailgun.secret')) {
+            return back()->with('error', 'MAILGUN_SECRET not configured in environment.');
+        }
+
+        Log::info('Testing Mailgun email configuration', [
             'to' => $testEmail,
             'from' => $fromEmail,
             'mailer' => config('mail.default'),
+            'domain' => config('services.mailgun.domain'),
         ]);
 
         try {
-            Mail::raw('This is a test email from Call Grader to verify your SendGrid configuration is working correctly.', function ($message) use ($testEmail) {
+            Mail::raw('This is a test email from Call Grader to verify your Mailgun configuration is working correctly.', function ($message) use ($testEmail) {
                 $message->to($testEmail)
                     ->subject('Call Grader - Test Email');
             });
@@ -205,14 +186,11 @@ class SettingsController extends Controller
     {
         $config = [
             'default_mailer' => config('mail.default'),
-            'sendgrid_host' => config('mail.mailers.sendgrid.host'),
-            'sendgrid_port' => config('mail.mailers.sendgrid.port'),
-            'sendgrid_username' => config('mail.mailers.sendgrid.username'),
-            'sendgrid_password_set' => !empty(config('mail.mailers.sendgrid.password')),
             'from_address' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
-            'sendgrid_api_key_in_db' => !empty(Setting::getEncrypted('sendgrid_api_key')),
-            'sendgrid_from_email_in_db' => Setting::get('sendgrid_from_email'),
+            'mailgun_domain' => config('services.mailgun.domain'),
+            'mailgun_endpoint' => config('services.mailgun.endpoint'),
+            'mailgun_secret_set' => !empty(config('services.mailgun.secret')),
         ];
 
         return response()->json($config);

@@ -56,81 +56,38 @@
                         <p class="text-xs text-gray-500 mt-1">Used for call transcription. Get your key at <a href="https://console.deepgram.com" target="_blank" class="text-blue-600 hover:text-blue-700">console.deepgram.com</a></p>
                     </div>
 
-                    <hr class="border-gray-100 my-4">
-
-                    <!-- SendGrid -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">SendGrid API Key</label>
-                        <div class="flex gap-2">
-                            <input
-                                type="password"
-                                name="sendgrid_api_key"
-                                value="{{ $settings['sendgrid_api_key'] }}"
-                                placeholder="Enter SendGrid API key"
-                                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                            <button
-                                type="button"
-                                onclick="this.previousElementSibling.type = this.previousElementSibling.type === 'password' ? 'text' : 'password'"
-                                class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                                Show
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Used for sending emails. Get your key at <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" class="text-blue-600 hover:text-blue-700">SendGrid API Keys</a></p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">SendGrid From Email</label>
-                        <input
-                            type="email"
-                            name="sendgrid_from_email"
-                            value="{{ $settings['sendgrid_from_email'] }}"
-                            placeholder="noreply@yourdomain.com"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                        <p class="text-xs text-gray-500 mt-1">The email address that emails will be sent from (must be verified in SendGrid)</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">SendGrid From Name</label>
-                        <input
-                            type="text"
-                            name="sendgrid_from_name"
-                            value="{{ $settings['sendgrid_from_name'] }}"
-                            placeholder="Call Grader"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                    </div>
                 </div>
 
                 <div class="flex justify-between items-center mt-6">
-                    <div class="flex gap-2">
-                        <form method="POST" action="{{ route('admin.settings.test-deepgram') }}" class="inline">
-                            @csrf
-                            <button type="submit" class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                Test Deepgram
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.settings.test-email') }}" class="inline">
-                            @csrf
-                            <button type="submit" class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                Test Email
-                            </button>
-                        </form>
-                    </div>
+                    <form method="POST" action="{{ route('admin.settings.test-deepgram') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            Test Deepgram
+                        </button>
+                    </form>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
                         Save API Settings
                     </button>
                 </div>
             </form>
+        </div>
 
-            <!-- Mail Config Debug Info -->
-            <div class="mt-4 pt-4 border-t border-gray-100">
-                <p class="text-xs text-gray-500">
-                    Current mailer: <span class="font-mono">{{ config('mail.default') }}</span> |
-                    From: <span class="font-mono">{{ config('mail.from.address') ?: 'not set' }}</span>
-                </p>
+        <!-- Email Configuration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Email Configuration</h3>
+            <p class="text-sm text-gray-600 mb-4">Email is configured via environment variables in Laravel Forge. Current configuration:</p>
+            <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm">
+                <p><span class="text-gray-500">Mailer:</span> <span class="text-gray-900">{{ config('mail.default') }}</span></p>
+                <p><span class="text-gray-500">From:</span> <span class="text-gray-900">{{ config('mail.from.address') ?: 'not set' }}</span></p>
+                <p><span class="text-gray-500">Domain:</span> <span class="text-gray-900">{{ config('services.mailgun.domain') ?: 'not set' }}</span></p>
+            </div>
+            <div class="mt-4">
+                <form method="POST" action="{{ route('admin.settings.test-email') }}" class="inline">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Send Test Email
+                    </button>
+                </form>
             </div>
         </div>
 
