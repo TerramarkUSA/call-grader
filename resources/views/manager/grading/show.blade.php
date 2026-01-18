@@ -248,22 +248,59 @@
                         <div class="grid grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Rep Name</label>
-                                <div class="text-sm text-gray-900">
-                                    {{ $call->rep?->name ?? 'Unknown' }}
-                                </div>
+                                <select
+                                    id="rep-select"
+                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">-- Select Rep --</option>
+                                    @foreach($reps as $rep)
+                                        <option value="{{ $rep->id }}" {{ $call->rep_id == $rep->id ? 'selected' : '' }}>
+                                            {{ $rep->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Project</label>
-                                <div class="text-sm text-gray-900">
-                                    {{ $call->project?->name ?? 'Unknown' }}
-                                </div>
+                                <select
+                                    id="project-select"
+                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">-- Select Project --</option>
+                                    @foreach($projects as $project)
+                                        <option value="{{ $project->id }}" {{ $call->project_id == $project->id ? 'selected' : '' }}>
+                                            {{ $project->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Outcome</label>
-                                <div class="text-sm text-gray-900">
-                                    {{ ucfirst(str_replace('_', ' ', $call->call_quality ?? 'pending')) }}
-                                </div>
+                                <select
+                                    id="outcome-select"
+                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">-- Select Outcome --</option>
+                                    <option value="appointment_set" {{ $call->outcome == 'appointment_set' ? 'selected' : '' }}>Appointment Set</option>
+                                    <option value="no_appointment" {{ $call->outcome == 'no_appointment' ? 'selected' : '' }}>No Appointment</option>
+                                    <option value="callback" {{ $call->outcome == 'callback' ? 'selected' : '' }}>Callback</option>
+                                    <option value="not_qualified" {{ $call->outcome == 'not_qualified' ? 'selected' : '' }}>Not Qualified</option>
+                                    <option value="other" {{ $call->outcome == 'other' ? 'selected' : '' }}>Other</option>
+                                </select>
                             </div>
+                        </div>
+                        <!-- Appointment Quality (only shown when outcome = appointment_set) -->
+                        <div id="appointment-quality-row" class="mt-3 {{ $call->outcome == 'appointment_set' ? '' : 'hidden' }}">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Appointment Quality</label>
+                            <select
+                                id="appointment-quality-select"
+                                class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="">-- Select Quality --</option>
+                                <option value="solid" {{ ($existingGrade?->appointment_quality ?? '') == 'solid' ? 'selected' : '' }}>Solid - Enthusiastic, confirmed, likely to show</option>
+                                <option value="tentative" {{ ($existingGrade?->appointment_quality ?? '') == 'tentative' ? 'selected' : '' }}>Tentative - Agreed but hesitant, may need confirmation</option>
+                                <option value="backed_in" {{ ($existingGrade?->appointment_quality ?? '') == 'backed_in' ? 'selected' : '' }}>Backed In - Reluctantly agreed, high no-show risk</option>
+                            </select>
                         </div>
                     </div>
                 </div>

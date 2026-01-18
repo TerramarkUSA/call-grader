@@ -8,6 +8,8 @@ use App\Models\Grade;
 use App\Models\GradeCategoryScore;
 use App\Models\GradeCheckpointResponse;
 use App\Models\ObjectionType;
+use App\Models\Project;
+use App\Models\Rep;
 use App\Models\RubricCategory;
 use App\Models\RubricCheckpoint;
 use App\Services\ScoringService;
@@ -69,6 +71,17 @@ class GradingController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
+        // Get reps and projects for the account
+        $reps = Rep::where('account_id', $call->account_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $projects = Project::where('account_id', $call->account_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('manager.grading.show', compact(
             'call',
             'categories',
@@ -78,7 +91,9 @@ class GradingController extends Controller
             'transcript',
             'objectionTypes',
             'isMultichannel',
-            'speakersSwapped'
+            'speakersSwapped',
+            'reps',
+            'projects'
         ));
     }
 
@@ -93,8 +108,18 @@ class GradingController extends Controller
             'checkpoint_responses' => 'nullable|array',
             'checkpoint_responses.*' => 'nullable|boolean',
             'appointment_quality' => 'nullable|in:solid,tentative,backed_in',
+            'rep_id' => 'nullable|exists:reps,id',
+            'project_id' => 'nullable|exists:projects,id',
+            'outcome' => 'nullable|in:appointment_set,no_appointment,callback,not_qualified,other',
             'playback_seconds' => 'required|integer|min:0',
             'status' => 'required|in:draft,submitted',
+        ]);
+
+        // Update call record with rep, project, outcome
+        $call->update([
+            'rep_id' => $validated['rep_id'] ?? null,
+            'project_id' => $validated['project_id'] ?? null,
+            'outcome' => $validated['outcome'] ?? null,
         ]);
 
         $grade = DB::transaction(function () use ($validated, $call) {
