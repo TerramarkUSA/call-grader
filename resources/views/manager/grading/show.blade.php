@@ -454,8 +454,8 @@
                                         <div class="checkpoint-row flex items-center justify-between py-2 px-2 border-b border-gray-100 transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="negative">
                                             <span class="text-sm text-gray-700 pr-2">{{ $negativeLabels[$index] ?? $checkpoint->name }}</span>
                                             <div class="flex gap-1 flex-shrink-0">
-                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-600 transition-colors" data-value="1">Yes</button>
-                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-600 transition-colors" data-value="0">No</button>
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-600 transition-colors" data-value="1">Yes</button>
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-600 transition-colors" data-value="0">No</button>
                                             </div>
                                         </div>
                                     @endforeach
