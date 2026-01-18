@@ -18,6 +18,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Opening & Control',
                 'weight' => 0.15,
                 'sort_order' => 1,
+                'training_reference' => 'Take control from the start. Set the agenda, get permission to ask questions. The prospect gains control when they\'re asking the questions - flip it back with "Great question, and I\'ll get to that. First, let me ask..."',
                 'scoring_criteria' => [
                     '4' => 'Excellent opening with name, company, and immediately takes control with a question. Never loses control.',
                     '3' => 'Good opening, takes control, but may have briefly lost it once.',
@@ -30,6 +31,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Discovery & Qualification',
                 'weight' => 0.15,
                 'sort_order' => 2,
+                'training_reference' => 'Give information to get information. Ask about timeline, budget, who else is involved in the decision. The more you know, the better you can match them to the right property.',
                 'scoring_criteria' => [
                     '4' => 'Asked 3+ open-ended questions, uncovered timeline, motivation, and decision-makers.',
                     '3' => 'Asked good questions, got some useful info but missed an area.',
@@ -42,6 +44,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Hope of Gain',
                 'weight' => 0.10,
                 'sort_order' => 3,
+                'training_reference' => 'Paint the picture of ownership. Weekend getaways, family gatherings, building equity. What does their ideal property look like? What would they DO there?',
                 'scoring_criteria' => [
                     '4' => 'Painted vivid picture of ownership benefits tied to prospect\'s stated desires.',
                     '3' => 'Mentioned benefits but didn\'t personalize to prospect.',
@@ -54,6 +57,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Fear of Loss / Urgency',
                 'weight' => 0.10,
                 'sort_order' => 4,
+                'training_reference' => 'Create urgency without pressure. Limited availability, others looking, prices going up. "These lots don\'t last long at this price point."',
                 'scoring_criteria' => [
                     '4' => 'Created genuine urgency with specific scarcity, deadlines, or consequences of waiting.',
                     '3' => 'Mentioned urgency but didn\'t make it feel real.',
@@ -66,6 +70,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Sell the Deal / Value',
                 'weight' => 0.15,
                 'sort_order' => 5,
+                'training_reference' => 'Focus on the VALUE, not the price. What they GET for what they pay. Compare to alternatives. Payment plans, financing options.',
                 'scoring_criteria' => [
                     '4' => 'Made the deal feel special, exclusive, and valuable. Prospect understands why NOW.',
                     '3' => 'Explained value but didn\'t make it feel urgent or special.',
@@ -78,6 +83,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Sold the Appointment',
                 'weight' => 0.20,
                 'sort_order' => 6,
+                'training_reference' => 'The ONLY goal is the appointment. "The only way to know if this is right for you is to come see it in person." Stop selling once they agree to come.',
                 'scoring_criteria' => [
                     '4' => 'Clearly asked for appointment, handled objections, confirmed date/time, gave clear next steps.',
                     '3' => 'Asked for appointment, got commitment, but some details fuzzy.',
@@ -90,6 +96,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Company & Credibility',
                 'weight' => 0.10,
                 'sort_order' => 7,
+                'training_reference' => 'Build trust in the company. How long in business, number of happy owners, BBB rating, developments completed. They\'re not buying from you yet, they\'re buying from the company.',
                 'scoring_criteria' => [
                     '4' => 'Established company credibility naturally, used social proof effectively.',
                     '3' => 'Mentioned company strengths but didn\'t weave in naturally.',
@@ -102,6 +109,7 @@ class RubricSeeder extends Seeder
                 'name' => 'Professionalism & Tone',
                 'weight' => 0.05,
                 'sort_order' => 8,
+                'training_reference' => 'Energy and attitude matter. Smile when you talk - they can hear it. Match their pace but lead with enthusiasm. Be the person they want to meet.',
                 'scoring_criteria' => [
                     '4' => 'Professional, friendly, confident. Good energy throughout.',
                     '3' => 'Professional but could have had more energy or warmth.',
