@@ -160,10 +160,10 @@
 
     <!-- Main Content -->
     <div class="max-w-[1600px] mx-auto px-4 py-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:min-h-[calc(100vh-180px)]">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Column: Transcript -->
-            <div class="h-full">
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden h-full flex flex-col">
+            <div class="max-h-[calc(100vh-200px)] flex flex-col">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
                     <div class="px-5 py-4 border-b">
                         <div class="flex items-center justify-between">
                             <div>
@@ -238,7 +238,7 @@
             </div>
 
             <!-- Middle Column: Call Details + Rubric Grading -->
-            <div class="h-full flex flex-col space-y-4">
+            <div class="max-h-[calc(100vh-200px)] flex flex-col space-y-4 overflow-y-auto">
                 <!-- Call Details Card -->
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="px-5 py-3 border-b">
@@ -282,7 +282,7 @@
                     </div>
 
                     <!-- Sales Call Evaluation -->
-                    <div class="px-5 py-4 flex-1 overflow-y-auto">
+                    <div class="px-5 py-4 flex-1">
                         <div class="mb-3">
                             <h3 class="text-base font-semibold text-gray-900">Sales Call Evaluation</h3>
                             <p class="text-sm text-gray-500">Score each category 1-4 based on call performance</p>
@@ -326,7 +326,7 @@
             </div>
 
             <!-- Right Column: Checkpoints + Actions -->
-            <div class="h-full flex flex-col space-y-4">
+            <div class="max-h-[calc(100vh-200px)] flex flex-col space-y-4 overflow-y-auto">
                 <!-- Checkpoints Section -->
                 @if(count($positiveCheckpoints) > 0 || count($negativeCheckpoints) > 0)
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
