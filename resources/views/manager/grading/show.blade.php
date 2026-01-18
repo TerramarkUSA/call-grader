@@ -415,7 +415,7 @@
                         <div class="px-5 py-4 flex-1 overflow-y-auto">
                             @if(count($positiveCheckpoints) > 0)
                                 <div class="mb-4">
-                                    <h4 class="text-sm font-medium text-green-700 mb-2">Should Observe</h4>
+                                    <h4 class="text-sm font-medium text-green-700 mb-2">Do These</h4>
                                     @php
                                         $positiveLabels = [
                                             'Asked discovery questions',
@@ -428,11 +428,11 @@
                                         ];
                                     @endphp
                                     @foreach($positiveCheckpoints as $index => $checkpoint)
-                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 rounded-lg transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="positive">
+                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 border-b border-gray-100 transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="positive">
                                             <span class="text-sm text-gray-700 pr-2">{{ $positiveLabels[$index] ?? $checkpoint->name }}</span>
-                                            <div class="flex gap-2 flex-shrink-0">
-                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-green-600 transition-colors" data-value="1">✓</button>
-                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-red-600 transition-colors" data-value="0">✗</button>
+                                            <div class="flex gap-1 flex-shrink-0">
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-600 transition-colors" data-value="1">Yes</button>
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-600 transition-colors" data-value="0">No</button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -441,7 +441,7 @@
 
                             @if(count($negativeCheckpoints) > 0)
                                 <div>
-                                    <h4 class="text-sm font-medium text-red-700 mb-2">Should NOT Observe</h4>
+                                    <h4 class="text-sm font-medium text-red-700 mb-2">Don't Do These</h4>
                                     @php
                                         $negativeLabels = [
                                             'Product vomit',
@@ -451,11 +451,11 @@
                                         ];
                                     @endphp
                                     @foreach($negativeCheckpoints as $index => $checkpoint)
-                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 rounded-lg transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="negative">
+                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 border-b border-gray-100 transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="negative">
                                             <span class="text-sm text-gray-700 pr-2">{{ $negativeLabels[$index] ?? $checkpoint->name }}</span>
-                                            <div class="flex gap-2 flex-shrink-0">
-                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-green-600 transition-colors" data-value="1">✓</button>
-                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-red-600 transition-colors" data-value="0">✗</button>
+                                            <div class="flex gap-1 flex-shrink-0">
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-600 transition-colors" data-value="1">Yes</button>
+                                                <button type="button" class="checkpoint-btn px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-600 transition-colors" data-value="0">No</button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -899,25 +899,42 @@
         function updateCheckpointDisplay(row, observed, type) {
             const buttons = row.querySelectorAll('.checkpoint-btn');
             
-            // Reset row background
+            // Reset row background and button styles
             row.classList.remove('bg-green-50', 'bg-red-50');
 
             buttons.forEach(btn => {
                 const value = btn.dataset.value === '1';
-                // Reset icon colors
-                btn.classList.remove('text-green-600', 'text-red-600', 'text-gray-400');
+                // Reset button styles
+                btn.classList.remove('text-green-600', 'text-red-600', 'text-gray-400', 'bg-green-100', 'bg-red-100', 'border-green-400', 'border-red-400', 'border-gray-200');
+                btn.classList.add('border-gray-200');
 
-                if (observed === null) {
-                    // Neutral state
+                if (observed === null || observed === undefined) {
+                    // Neutral state - neither selected
                     btn.classList.add('text-gray-400');
                 } else if (value && observed === true) {
-                    // Yes selected
-                    btn.classList.add('text-green-600');
-                    row.classList.add('bg-green-50');
+                    // Yes button selected
+                    btn.classList.remove('border-gray-200');
+                    if (type === 'positive') {
+                        // "Do These" + Yes = good (green)
+                        btn.classList.add('text-green-600', 'bg-green-100', 'border-green-400');
+                        row.classList.add('bg-green-50');
+                    } else {
+                        // "Don't Do These" + Yes = bad (red) - they DID the bad thing
+                        btn.classList.add('text-red-600', 'bg-red-100', 'border-red-400');
+                        row.classList.add('bg-red-50');
+                    }
                 } else if (!value && observed === false) {
-                    // No selected
-                    btn.classList.add('text-red-600');
-                    row.classList.add('bg-red-50');
+                    // No button selected
+                    btn.classList.remove('border-gray-200');
+                    if (type === 'positive') {
+                        // "Do These" + No = bad (red) - they didn't do the good thing
+                        btn.classList.add('text-red-600', 'bg-red-100', 'border-red-400');
+                        row.classList.add('bg-red-50');
+                    } else {
+                        // "Don't Do These" + No = good (green) - they avoided the bad thing
+                        btn.classList.add('text-green-600', 'bg-green-100', 'border-green-400');
+                        row.classList.add('bg-green-50');
+                    }
                 } else {
                     // Unselected button
                     btn.classList.add('text-gray-400');
@@ -1023,6 +1040,17 @@
 
             if (scoredCategories < totalCategories) {
                 if (!confirm('Some categories are not scored. Submit anyway?')) {
+                    return;
+                }
+            }
+
+            // Check for unevaluated checkpoints
+            const totalCheckpoints = document.querySelectorAll('.checkpoint-row').length;
+            const evaluatedCheckpoints = Object.keys(state.checkpointResponses).length;
+            const unevaluatedCount = totalCheckpoints - evaluatedCheckpoints;
+
+            if (unevaluatedCount > 0) {
+                if (!confirm(`${unevaluatedCount} checkpoint${unevaluatedCount > 1 ? 's' : ''} not evaluated - continue anyway?`)) {
                     return;
                 }
             }
