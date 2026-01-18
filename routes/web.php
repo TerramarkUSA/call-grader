@@ -1,28 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use App\Models\User;
-use App\Models\RubricCategory;
-use App\Models\RubricCheckpoint;
-
-// TODO: REMOVE AFTER USE - Temporary database fix route
-Route::get('/fix-database-temp-123', function () {
-    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-    RubricCategory::truncate();
-    RubricCheckpoint::truncate();
-    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-    Artisan::call('db:seed', ['--class' => 'RubricSeeder', '--force' => true]);
-
-    $categories = RubricCategory::count();
-    $positive = RubricCheckpoint::where('type', 'positive')->count();
-    $negative = RubricCheckpoint::where('type', 'negative')->count();
-
-    return response("Categories: {$categories}, Positive checkpoints: {$positive}, Negative checkpoints: {$negative}", 200)
-        ->header('Content-Type', 'text/plain');
-});
 
 Route::get('/', function () {
     if (auth()->check()) {
