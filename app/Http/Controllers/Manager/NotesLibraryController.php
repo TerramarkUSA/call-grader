@@ -44,8 +44,19 @@ class NotesLibraryController extends Controller
             });
         }
 
-        if ($request->filled('is_objection')) {
-            $query->where('is_objection', $request->is_objection === 'true');
+        // Note type filter (overall, snippet, objection)
+        if ($request->filled('note_type')) {
+            switch ($request->note_type) {
+                case 'overall':
+                    $query->whereNull('line_index_start');
+                    break;
+                case 'snippet':
+                    $query->whereNotNull('line_index_start')->where('is_objection', false);
+                    break;
+                case 'objection':
+                    $query->where('is_objection', true);
+                    break;
+            }
         }
 
         $notes = $query->paginate(25)->withQueryString();
@@ -67,7 +78,7 @@ class NotesLibraryController extends Controller
         // Stats
         $stats = [
             'total_notes' => CoachingNote::where('author_id', Auth::id())->count(),
-            'with_category' => CoachingNote::where('author_id', Auth::id())->whereNotNull('rubric_category_id')->count(),
+            'overall_notes' => CoachingNote::where('author_id', Auth::id())->whereNull('line_index_start')->count(),
             'objections' => CoachingNote::where('author_id', Auth::id())->where('is_objection', true)->count(),
         ];
 

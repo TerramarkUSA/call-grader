@@ -21,7 +21,7 @@ class CoachingNoteController extends Controller
         $notes = CoachingNote::where('call_id', $call->id)
             ->where('author_id', Auth::id())
             ->with(['category:id,name', 'objectionType:id,name'])
-            ->orderBy('line_index_start')
+            ->orderByRaw('line_index_start IS NULL, line_index_start ASC')
             ->get();
 
         return response()->json($notes);
@@ -34,11 +34,11 @@ class CoachingNoteController extends Controller
     {
         $validated = $request->validate([
             'grade_id' => 'nullable|exists:grades,id',
-            'line_index_start' => 'required|integer|min:0',
+            'line_index_start' => 'nullable|integer|min:0',
             'line_index_end' => 'nullable|integer|min:0',
-            'timestamp_start' => 'required|numeric|min:0',
+            'timestamp_start' => 'nullable|numeric|min:0',
             'timestamp_end' => 'nullable|numeric|min:0',
-            'transcript_text' => 'required|string|max:2000',
+            'transcript_text' => 'nullable|string|max:2000',
             'note_text' => 'required|string|max:2000',
             'rubric_category_id' => 'nullable|exists:rubric_categories,id',
             'is_objection' => 'boolean',
@@ -56,15 +56,33 @@ class CoachingNoteController extends Controller
                 ->first();
         }
 
+        // For overall notes (no line_index_start), check if one already exists
+        if ($validated['line_index_start'] === null) {
+            $existingOverallNote = CoachingNote::where('call_id', $call->id)
+                ->where('author_id', Auth::id())
+                ->whereNull('line_index_start')
+                ->first();
+            
+            if ($existingOverallNote) {
+                // Update existing overall note instead of creating new one
+                $existingOverallNote->update([
+                    'note_text' => $validated['note_text'],
+                    'grade_id' => $grade?->id,
+                ]);
+                $existingOverallNote->load(['category:id,name', 'objectionType:id,name']);
+                return response()->json($existingOverallNote);
+            }
+        }
+
         $note = CoachingNote::create([
             'call_id' => $call->id,
             'grade_id' => $grade?->id,
             'author_id' => Auth::id(),
-            'line_index_start' => $validated['line_index_start'],
-            'line_index_end' => $validated['line_index_end'] ?? $validated['line_index_start'],
-            'timestamp_start' => $validated['timestamp_start'],
-            'timestamp_end' => $validated['timestamp_end'] ?? $validated['timestamp_start'],
-            'transcript_text' => $validated['transcript_text'],
+            'line_index_start' => $validated['line_index_start'] ?? null,
+            'line_index_end' => $validated['line_index_end'] ?? $validated['line_index_start'] ?? null,
+            'timestamp_start' => $validated['timestamp_start'] ?? null,
+            'timestamp_end' => $validated['timestamp_end'] ?? $validated['timestamp_start'] ?? null,
+            'transcript_text' => $validated['transcript_text'] ?? null,
             'note_text' => $validated['note_text'],
             'rubric_category_id' => $validated['rubric_category_id'] ?? null,
             'is_objection' => $validated['is_objection'] ?? false,

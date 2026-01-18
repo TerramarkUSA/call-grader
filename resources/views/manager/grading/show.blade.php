@@ -45,6 +45,13 @@
             background: #e5e7eb;
             border-radius: 2px;
         }
+        #rep-select,
+        #project-select,
+        #outcome-select,
+        #appointment-quality-select {
+            text-align: center;
+            text-align-last: center;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -168,9 +175,11 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-gray-900">Transcript</h2>
-                                <p class="text-sm text-gray-500">{{ count($transcript) }} utterances - Click any line to add a coaching note</p>
+                                <p class="text-sm text-gray-500">Click to hear snippet</p>
+                                <p class="text-sm text-gray-500">+ to add note</p>
                             </div>
-                            <button
+                            <div class="flex items-center gap-2">
+                                <button
                                     id="sync-to-audio-btn"
                                     type="button"
                                     class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center gap-1.5 transition-colors"
@@ -179,21 +188,22 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                                     </svg>
-                                    Sync to Audio
+                                    Sync Audio
                                 </button>
-                            @if($isMultichannel)
-                                <button
-                                    id="swap-speakers-btn"
-                                    type="button"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center gap-1.5 transition-colors"
-                                    title="Swap Rep/Prospect labels if they're backwards"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-                                    </svg>
-                                    Swap Speakers
-                                </button>
-                            @endif
+                                @if($isMultichannel)
+                                    <button
+                                        id="swap-speakers-btn"
+                                        type="button"
+                                        class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center gap-1.5 transition-colors"
+                                        title="Swap Rep/Prospect labels if they're backwards"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                        </svg>
+                                        Swap Speakers
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
@@ -268,13 +278,13 @@
                     </div>
                     <div class="px-5 py-3">
                         <div class="grid grid-cols-3 gap-3">
-                            <div>
+                            <div class="text-center">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Rep Name</label>
                                 <select
                                     id="rep-select"
-                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full text-sm text-center border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
-                                    <option value="">-- Select Rep --</option>
+                                    <option value="">Select</option>
                                     @foreach($reps as $rep)
                                         <option value="{{ $rep->id }}" {{ $call->rep_id == $rep->id ? 'selected' : '' }}>
                                             {{ $rep->name }}
@@ -282,13 +292,13 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
+                            <div class="text-center">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Project</label>
                                 <select
                                     id="project-select"
-                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full text-sm text-center border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
-                                    <option value="">-- Select Project --</option>
+                                    <option value="">Select</option>
                                     @foreach($projects as $project)
                                         <option value="{{ $project->id }}" {{ $call->project_id == $project->id ? 'selected' : '' }}>
                                             {{ $project->name }}
@@ -296,13 +306,13 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
+                            <div class="text-center">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Outcome</label>
                                 <select
                                     id="outcome-select"
-                                    class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full text-sm text-center border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
-                                    <option value="">-- Select Outcome --</option>
+                                    <option value="">Select</option>
                                     <option value="appointment_set" {{ $call->outcome == 'appointment_set' ? 'selected' : '' }}>Appointment Set</option>
                                     <option value="no_appointment" {{ $call->outcome == 'no_appointment' ? 'selected' : '' }}>No Appointment</option>
                                     <option value="callback" {{ $call->outcome == 'callback' ? 'selected' : '' }}>Callback</option>
@@ -312,13 +322,13 @@
                             </div>
                         </div>
                         <!-- Appointment Quality (only shown when outcome = appointment_set) -->
-                        <div id="appointment-quality-row" class="mt-3 {{ $call->outcome == 'appointment_set' ? '' : 'hidden' }}">
+                        <div id="appointment-quality-row" class="mt-3 text-center {{ $call->outcome == 'appointment_set' ? '' : 'hidden' }}">
                             <label class="block text-xs font-medium text-gray-500 mb-1">Appointment Quality</label>
                             <select
                                 id="appointment-quality-select"
-                                class="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full text-sm text-center border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
-                                <option value="">-- Select Quality --</option>
+                                <option value="">Select</option>
                                 <option value="solid" {{ ($existingGrade?->appointment_quality ?? '') == 'solid' ? 'selected' : '' }}>Solid - Enthusiastic, confirmed, likely to show</option>
                                 <option value="tentative" {{ ($existingGrade?->appointment_quality ?? '') == 'tentative' ? 'selected' : '' }}>Tentative - Agreed but hesitant, may need confirmation</option>
                                 <option value="backed_in" {{ ($existingGrade?->appointment_quality ?? '') == 'backed_in' ? 'selected' : '' }}>Backed In - Reluctantly agreed, high no-show risk</option>
@@ -475,6 +485,22 @@
                         </div>
                     </div>
                 @endif
+
+                <!-- Overall Call Notes Section -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-5 py-3 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Overall Call Notes</h3>
+                        <p class="text-sm text-gray-500">General feedback about this call</p>
+                    </div>
+                    <div class="px-5 py-4">
+                        <textarea
+                            id="overall-notes-textarea"
+                            rows="4"
+                            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            placeholder="Enter your overall thoughts about this call..."
+                        ></textarea>
+                    </div>
+                </div>
 
                 <!-- Appointment Quality -->
                 @if(in_array($call->call_quality, ['booked', 'appointment_set']) || $call->dial_status === 'booked')
@@ -649,6 +675,8 @@
             repId: {{ $call->rep_id ?? 'null' }},
             projectId: {{ $call->project_id ?? 'null' }},
             outcome: {!! $call->outcome ? '"' . $call->outcome . '"' : 'null' !!},
+            overallNotes: '',
+            overallNoteId: null,
         };
 
         // Load existing grade data
@@ -1032,6 +1060,12 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    // Save overall notes if there's content
+                    const overallNotesText = document.getElementById('overall-notes-textarea').value.trim();
+                    if (overallNotesText) {
+                        await saveOverallNote(overallNotesText);
+                    }
+                    
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     } else {
@@ -1048,6 +1082,42 @@
                 submitBtn.disabled = false;
                 saveDraftBtn.textContent = originalSaveText;
                 submitBtn.textContent = originalSubmitText;
+            }
+        }
+
+        async function saveOverallNote(noteText) {
+            try {
+                const url = state.overallNoteId 
+                    ? `/manager/notes/${state.overallNoteId}`
+                    : `/manager/calls/${state.callId}/notes`;
+                const method = state.overallNoteId ? 'PATCH' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        grade_id: state.gradeId,
+                        note_text: noteText,
+                        line_index_start: null,
+                        line_index_end: null,
+                        timestamp_start: null,
+                        timestamp_end: null,
+                        transcript_text: null,
+                        is_objection: false,
+                    }),
+                });
+
+                if (response.ok) {
+                    const note = await response.json();
+                    state.overallNoteId = note.id;
+                    state.overallNotes = noteText;
+                }
+            } catch (error) {
+                console.error('Error saving overall note:', error);
             }
         }
 
@@ -1237,8 +1307,18 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
                 });
-                const notes = await response.json();
-                state.notes = notes;
+                const allNotes = await response.json();
+                
+                // Separate overall notes (no line_index_start) from snippet notes
+                const overallNote = allNotes.find(n => n.line_index_start === null);
+                if (overallNote) {
+                    state.overallNotes = overallNote.note_text;
+                    state.overallNoteId = overallNote.id;
+                    document.getElementById('overall-notes-textarea').value = overallNote.note_text;
+                }
+                
+                // Regular notes are those with line_index_start
+                state.notes = allNotes.filter(n => n.line_index_start !== null);
                 updateTranscriptNoteIndicators();
             } catch (error) {
                 console.error('Error loading notes:', error);

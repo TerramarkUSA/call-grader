@@ -23,8 +23,8 @@
                 <p class="text-2xl font-semibold text-gray-900">{{ $stats['total_notes'] }}</p>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <p class="text-sm text-gray-500">Categorized</p>
-                <p class="text-2xl font-semibold text-blue-600">{{ $stats['with_category'] }}</p>
+                <p class="text-sm text-gray-500">Overall Notes</p>
+                <p class="text-2xl font-semibold text-purple-600">{{ $stats['overall_notes'] }}</p>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <p class="text-sm text-gray-500">Objections</p>
@@ -55,10 +55,11 @@
                         @endforeach
                     </select>
 
-                    <select name="is_objection" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">All Notes</option>
-                        <option value="true" {{ request('is_objection') == 'true' ? 'selected' : '' }}>Objections Only</option>
-                        <option value="false" {{ request('is_objection') == 'false' ? 'selected' : '' }}>Non-Objections</option>
+                    <select name="note_type" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Note Types</option>
+                        <option value="overall" {{ request('note_type') == 'overall' ? 'selected' : '' }}>Overall Notes</option>
+                        <option value="snippet" {{ request('note_type') == 'snippet' ? 'selected' : '' }}>Snippet Notes</option>
+                        <option value="objection" {{ request('note_type') == 'objection' ? 'selected' : '' }}>Objections</option>
                     </select>
 
                     <input
@@ -102,17 +103,30 @@
                         </a>
                     </div>
 
-                    <!-- Transcript excerpt -->
-                    <p class="text-sm text-gray-400 italic mb-2 line-clamp-2">
-                        "{{ Str::limit($note->transcript_text, 150) }}"
-                    </p>
+                    <!-- Transcript excerpt or Overall Note label -->
+                    @if($note->transcript_text)
+                        <p class="text-sm text-gray-400 italic mb-2 line-clamp-2">
+                            "{{ Str::limit($note->transcript_text, 150) }}"
+                        </p>
+                    @else
+                        <p class="text-sm text-purple-600 font-medium mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Overall Call Note
+                        </p>
+                    @endif
 
                     <!-- Note text -->
                     <p class="text-gray-900 mb-3">{{ $note->note_text }}</p>
 
                     <!-- Tags -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        @if($note->category)
+                        @if($note->transcript_text === null)
+                            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
+                                Overall
+                            </span>
+                        @elseif($note->category)
                             <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">
                                 {{ $note->category->name }}
                             </span>
@@ -129,9 +143,11 @@
                             </span>
                         @endif
 
-                        <span class="text-xs text-gray-400 ml-auto">
-                            {{ gmdate('i:s', (int)$note->timestamp_start) }}
-                        </span>
+                        @if($note->timestamp_start)
+                            <span class="text-xs text-gray-400 ml-auto">
+                                {{ gmdate('i:s', (int)$note->timestamp_start) }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             @empty
