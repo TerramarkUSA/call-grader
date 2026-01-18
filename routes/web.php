@@ -2,15 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\RubricCategory;
 use App\Models\RubricCheckpoint;
 
 // TODO: REMOVE AFTER USE - Temporary database fix route
 Route::get('/fix-database-temp-123', function () {
-    // 1. Truncate tables
+    // 1. Disable foreign key checks and truncate tables
+    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
     RubricCategory::truncate();
     RubricCheckpoint::truncate();
+    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
     // 2. Run seeder
     Artisan::call('db:seed', ['--class' => 'RubricSeeder', '--force' => true]);
