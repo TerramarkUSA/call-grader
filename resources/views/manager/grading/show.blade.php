@@ -208,18 +208,52 @@
                     </div>
 
                     <div id="transcript-container" class="flex-1 overflow-y-auto">
-                        @forelse($transcript as $index => $utterance)
-                            @php
+                        @php
+                            // Merge consecutive same-speaker utterances
+                            $mergedTranscript = [];
+                            $currentGroup = null;
+
+                            foreach ($transcript as $index => $utterance) {
                                 $rawSpeaker = $utterance['speaker'] ?? 0;
+                                
+                                if ($currentGroup === null || $currentGroup['speaker'] !== $rawSpeaker) {
+                                    // Start new group
+                                    if ($currentGroup !== null) {
+                                        $mergedTranscript[] = $currentGroup;
+                                    }
+                                    $currentGroup = [
+                                        'speaker' => $rawSpeaker,
+                                        'text' => $utterance['text'] ?? '',
+                                        'start' => $utterance['start'] ?? 0,
+                                        'end' => $utterance['end'] ?? 0,
+                                        'indices' => [$index],
+                                    ];
+                                } else {
+                                    // Append to current group
+                                    $currentGroup['text'] .= ' ' . ($utterance['text'] ?? '');
+                                    $currentGroup['end'] = $utterance['end'] ?? $currentGroup['end'];
+                                    $currentGroup['indices'][] = $index;
+                                }
+                            }
+
+                            if ($currentGroup !== null) {
+                                $mergedTranscript[] = $currentGroup;
+                            }
+                        @endphp
+
+                        @forelse($mergedTranscript as $groupIndex => $group)
+                            @php
+                                $rawSpeaker = $group['speaker'];
                                 $effectiveSpeaker = $speakersSwapped ? (1 - $rawSpeaker) : $rawSpeaker;
                                 $isRep = $effectiveSpeaker === 0;
                             @endphp
                             <div
                                 class="utterance group relative p-3 pr-10 mb-3 rounded-lg {{ $isRep ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-green-50 border-l-4 border-green-400' }} cursor-pointer hover:bg-gray-100 transition-colors"
-                                data-index="{{ $index }}"
-                                data-start="{{ $utterance['start'] ?? 0 }}"
-                                data-end="{{ $utterance['end'] ?? 0 }}"
-                                data-text="{{ $utterance['text'] ?? '' }}"
+                                data-group-index="{{ $groupIndex }}"
+                                data-indices="{{ json_encode($group['indices']) }}"
+                                data-start="{{ $group['start'] }}"
+                                data-end="{{ $group['end'] }}"
+                                data-text="{{ $group['text'] }}"
                                 data-speaker="{{ $rawSpeaker }}"
                             >
                                 <!-- Speaker label and timestamp -->
@@ -236,7 +270,7 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span class="text-sm">{{ gmdate('i:s', (int)($utterance['start'] ?? 0)) }}</span>
+                                        <span class="text-sm">{{ gmdate('i:s', (int)$group['start']) }}</span>
                                     </div>
                                     <!-- Note indicator -->
                                     <span class="note-indicator hidden text-blue-500">
@@ -247,7 +281,7 @@
                                 </div>
 
                                 <!-- Text -->
-                                <p class="text-sm text-gray-700 leading-relaxed">{{ $utterance['text'] ?? '' }}</p>
+                                <p class="text-sm text-gray-700 leading-relaxed">{{ $group['text'] }}</p>
 
                                 <!-- Add Note Button (Gutter) -->
                                 <button
@@ -821,11 +855,11 @@
                     const start = parseFloat(utterance.dataset.start);
                     const end = parseFloat(utterance.dataset.end);
                     const text = utterance.dataset.text;
-                    const idx = parseInt(utterance.dataset.index);
+                    const indices = JSON.parse(utterance.dataset.indices || '[]');
 
                     openAddNoteModal({
-                        lineIndexStart: idx,
-                        lineIndexEnd: idx,
+                        lineIndexStart: indices[0] ?? 0,
+                        lineIndexEnd: indices[indices.length - 1] ?? 0,
                         timestampStart: start,
                         timestampEnd: end,
                         text: text,
@@ -1275,8 +1309,16 @@
                 const effectiveSpeaker = state.speakersSwapped ? (1 - rawSpeaker) : rawSpeaker;
                 const isRep = effectiveSpeaker === 0;
 
+                // Update background colors
+                utterance.classList.remove('bg-blue-50', 'border-blue-400', 'bg-green-50', 'border-green-400');
+                if (isRep) {
+                    utterance.classList.add('bg-blue-50', 'border-blue-400');
+                } else {
+                    utterance.classList.add('bg-green-50', 'border-green-400');
+                }
+
                 const label = utterance.querySelector('.speaker-label');
-                const icon = utterance.querySelector('svg');
+                const speakerIcon = utterance.querySelector('.flex.items-center.gap-1\\.5 svg');
 
                 if (label) {
                     label.classList.remove('text-blue-600', 'text-green-600');
@@ -1289,9 +1331,9 @@
                     }
                 }
 
-                if (icon) {
-                    icon.classList.remove('text-blue-500', 'text-green-500');
-                    icon.classList.add(isRep ? 'text-blue-500' : 'text-green-500');
+                if (speakerIcon) {
+                    speakerIcon.classList.remove('text-blue-500', 'text-green-500');
+                    speakerIcon.classList.add(isRep ? 'text-blue-500' : 'text-green-500');
                 }
             });
         }
@@ -1332,14 +1374,29 @@
                 if (indicator) indicator.classList.add('hidden');
             });
 
-            state.notes.forEach(note => {
-                const utterance = document.querySelector(`.utterance[data-index="${note.line_index_start}"]`);
-                if (utterance) {
-                    if (note.is_objection) {
-                        utterance.classList.add('utterance-has-objection');
-                    } else {
-                        utterance.classList.add('utterance-has-note');
+            // Check each utterance block for notes matching any of its indices
+            document.querySelectorAll('.utterance').forEach(utterance => {
+                const indices = JSON.parse(utterance.dataset.indices || '[]');
+                let hasNote = false;
+                let hasObjection = false;
+
+                state.notes.forEach(note => {
+                    if (indices.includes(note.line_index_start)) {
+                        if (note.is_objection) {
+                            hasObjection = true;
+                        } else {
+                            hasNote = true;
+                        }
                     }
+                });
+
+                if (hasObjection) {
+                    utterance.classList.add('utterance-has-objection');
+                } else if (hasNote) {
+                    utterance.classList.add('utterance-has-note');
+                }
+
+                if (hasNote || hasObjection) {
                     const indicator = utterance.querySelector('.note-indicator');
                     if (indicator) indicator.classList.remove('hidden');
                 }
