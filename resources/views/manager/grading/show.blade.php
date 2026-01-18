@@ -351,7 +351,7 @@
                     </div>
 
                     <!-- Sales Call Evaluation -->
-                    <div class="px-5 py-4 flex-1">
+                    <div class="px-5 py-4 flex-1 overflow-y-auto min-h-0">
                         <div class="mb-3">
                             <h3 class="text-base font-semibold text-gray-900">Sales Call Evaluation</h3>
                             <p class="text-sm text-gray-500">Score each category 1-4 based on call performance</p>
