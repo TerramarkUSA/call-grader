@@ -624,6 +624,9 @@
             gradeId: {{ $existingGrade?->id ?? 'null' }},
             speakersSwapped: {{ $speakersSwapped ? 'true' : 'false' }},
             isMultichannel: {{ $isMultichannel ? 'true' : 'false' }},
+            repId: {{ $call->rep_id ?? 'null' }},
+            projectId: {{ $call->project_id ?? 'null' }},
+            outcome: {!! $call->outcome ? '"' . $call->outcome . '"' : 'null' !!},
         };
 
         // Load existing grade data
@@ -971,6 +974,9 @@
                         category_scores: state.categoryScores,
                         checkpoint_responses: state.checkpointResponses,
                         appointment_quality: state.appointmentQuality,
+                        rep_id: state.repId,
+                        project_id: state.projectId,
+                        outcome: state.outcome,
                         playback_seconds: Math.floor(state.playbackSeconds),
                         status: status,
                     }),
@@ -1055,6 +1061,39 @@
         if (swapSpeakersBtn) {
             swapSpeakersBtn.addEventListener('click', swapSpeakers);
         }
+
+        // ========================================
+        // Call Details Dropdowns
+        // ========================================
+        const repSelect = document.getElementById('rep-select');
+        const projectSelect = document.getElementById('project-select');
+        const outcomeSelect = document.getElementById('outcome-select');
+        const appointmentQualitySelect = document.getElementById('appointment-quality-select');
+        const appointmentQualityRow = document.getElementById('appointment-quality-row');
+
+        repSelect.addEventListener('change', (e) => {
+            state.repId = e.target.value ? parseInt(e.target.value) : null;
+        });
+
+        projectSelect.addEventListener('change', (e) => {
+            state.projectId = e.target.value ? parseInt(e.target.value) : null;
+        });
+
+        outcomeSelect.addEventListener('change', (e) => {
+            state.outcome = e.target.value || null;
+            // Show/hide appointment quality based on outcome
+            if (e.target.value === 'appointment_set') {
+                appointmentQualityRow.classList.remove('hidden');
+            } else {
+                appointmentQualityRow.classList.add('hidden');
+                state.appointmentQuality = null;
+                appointmentQualitySelect.value = '';
+            }
+        });
+
+        appointmentQualitySelect.addEventListener('change', (e) => {
+            state.appointmentQuality = e.target.value || null;
+        });
 
         async function swapSpeakers() {
             const btn = document.getElementById('swap-speakers-btn');
