@@ -123,47 +123,42 @@ class RubricSeeder extends Seeder
             RubricCategory::create($category);
         }
 
-        // 8 Positive Checkpoints
+        // 7 Positive Checkpoints
         $positiveCheckpoints = [
             [
-                'external_id' => 'asked_discovery_first',
-                'name' => 'Asked open-ended discovery question before giving information',
+                'external_id' => 'asked_discovery_questions',
+                'name' => 'Asked discovery questions',
                 'sort_order' => 1,
             ],
             [
-                'external_id' => 'captured_contact',
-                'name' => 'Captured contact information (name, phone, email, address)',
+                'external_id' => 'captured_contact_info',
+                'name' => 'Captured contact info',
                 'sort_order' => 2,
             ],
             [
-                'external_id' => 'give_get_info',
-                'name' => 'Give information, get information (traded value for value)',
+                'external_id' => 'gave_got_information',
+                'name' => 'Gave information, Got information',
                 'sort_order' => 3,
             ],
             [
                 'external_id' => 'asked_for_appointment',
-                'name' => 'Asked for the appointment at least once',
+                'name' => 'Asked for appointment',
                 'sort_order' => 4,
             ],
             [
                 'external_id' => 'explained_full_sale',
-                'name' => 'Explained the full sale with all timeslots',
+                'name' => 'Explained full sale',
                 'sort_order' => 5,
             ],
             [
-                'external_id' => 'established_datetime',
-                'name' => 'Established date/time for appointment',
+                'external_id' => 'confirmed_next_steps',
+                'name' => 'Confirmed next steps',
                 'sort_order' => 6,
             ],
             [
-                'external_id' => 'clear_next_steps',
-                'name' => 'Gave clear directions or confirmed next steps',
+                'external_id' => 'sold_company',
+                'name' => 'Sold Company',
                 'sort_order' => 7,
-            ],
-            [
-                'external_id' => 'clean_close',
-                'name' => 'Got off the phone cleanly (didn\'t oversell after booking)',
-                'sort_order' => 8,
             ],
         ];
 
@@ -171,32 +166,27 @@ class RubricSeeder extends Seeder
             RubricCheckpoint::create(array_merge($checkpoint, ['type' => 'positive']));
         }
 
-        // 5 Negative Checkpoints
+        // 4 Negative Checkpoints
         $negativeCheckpoints = [
             [
                 'external_id' => 'product_vomit',
-                'name' => 'Product vomit—dumped features/amenities without asking questions first',
+                'name' => 'Product vomit',
                 'sort_order' => 1,
             ],
             [
-                'external_id' => 'offered_price_unsolicited',
-                'name' => 'Offered price range and acreage range without customer request',
+                'external_id' => 'over_informed',
+                'name' => 'Over-informed',
                 'sort_order' => 2,
             ],
             [
-                'external_id' => 'gave_too_much_info',
-                'name' => 'Gave so much information there was no reason to visit',
+                'external_id' => 'lost_control',
+                'name' => 'Lost control',
                 'sort_order' => 3,
             ],
             [
-                'external_id' => 'lost_control',
-                'name' => 'Let prospect control the call—reactive the entire time',
-                'sort_order' => 4,
-            ],
-            [
                 'external_id' => 'talked_past_close',
-                'name' => 'Kept talking after appointment was set (talked themselves out of it)',
-                'sort_order' => 5,
+                'name' => 'Talked past the close',
+                'sort_order' => 4,
             ],
         ];
 
