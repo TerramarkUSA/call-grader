@@ -304,6 +304,9 @@
                                 <div class="category-card" data-category-id="{{ $category->id }}" data-weight="{{ $category->weight }}">
                                     <div class="mb-2">
                                         <h4 class="font-medium text-gray-900 text-sm">{{ $category->name }}</h4>
+                                        @if($category->description)
+                                            <p class="text-sm text-gray-600 mt-1">{{ $category->description }}</p>
+                                        @endif
                                     </div>
 
                                     <!-- Score Buttons -->
@@ -318,6 +321,34 @@
                                             </button>
                                         @endfor
                                     </div>
+
+                                    <!-- Training Details Accordion -->
+                                    @if($category->training_reference)
+                                        <div class="mt-2">
+                                            <button
+                                                type="button"
+                                                class="toggle-training-details text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                                                onclick="toggleTrainingDetails({{ $category->id }})"
+                                            >
+                                                <svg
+                                                    id="training-chevron-{{ $category->id }}"
+                                                    class="w-3 h-3 transition-transform"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                                <span id="training-toggle-text-{{ $category->id }}">Show details</span>
+                                            </button>
+                                            <div
+                                                id="training-details-{{ $category->id }}"
+                                                class="hidden mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap"
+                                            >
+                                                {{ $category->training_reference }}
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -337,13 +368,23 @@
                             @if(count($positiveCheckpoints) > 0)
                                 <div class="mb-4">
                                     <h4 class="text-sm font-medium text-green-700 mb-2">Should Observe</h4>
-                                    @foreach($positiveCheckpoints as $checkpoint)
-                                        <div class="checkpoint-row flex items-center justify-between py-2" data-checkpoint-id="{{ $checkpoint->id }}" data-type="positive">
-                                            <span class="text-sm text-gray-700 pr-2">{{ $checkpoint->name }}</span>
-                                            <div class="flex gap-1 flex-shrink-0">
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 bg-gray-100 text-gray-600" data-value="null">—</button>
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300" data-value="1">Yes</button>
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-300" data-value="0">No</button>
+                                    @php
+                                        $positiveLabels = [
+                                            'Asked discovery questions',
+                                            'Captured contact info',
+                                            'Gave information, Got information',
+                                            'Asked for appointment',
+                                            'Explained full sale',
+                                            'Confirmed next steps',
+                                            'Sold Company'
+                                        ];
+                                    @endphp
+                                    @foreach($positiveCheckpoints as $index => $checkpoint)
+                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 rounded-lg transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="positive">
+                                            <span class="text-sm text-gray-700 pr-2">{{ $positiveLabels[$index] ?? $checkpoint->name }}</span>
+                                            <div class="flex gap-2 flex-shrink-0">
+                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-green-600 transition-colors" data-value="1">✓</button>
+                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-red-600 transition-colors" data-value="0">✗</button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -353,13 +394,20 @@
                             @if(count($negativeCheckpoints) > 0)
                                 <div>
                                     <h4 class="text-sm font-medium text-red-700 mb-2">Should NOT Observe</h4>
-                                    @foreach($negativeCheckpoints as $checkpoint)
-                                        <div class="checkpoint-row flex items-center justify-between py-2" data-checkpoint-id="{{ $checkpoint->id }}" data-type="negative">
-                                            <span class="text-sm text-gray-700 pr-2">{{ $checkpoint->name }}</span>
-                                            <div class="flex gap-1 flex-shrink-0">
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 bg-gray-100 text-gray-600" data-value="null">—</button>
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-300" data-value="1">Yes</button>
-                                                <button type="button" class="checkpoint-btn px-2.5 py-1 text-xs rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300" data-value="0">No</button>
+                                    @php
+                                        $negativeLabels = [
+                                            'Product vomit',
+                                            'Over-informed',
+                                            'Lost control',
+                                            'Talked past the close'
+                                        ];
+                                    @endphp
+                                    @foreach($negativeCheckpoints as $index => $checkpoint)
+                                        <div class="checkpoint-row flex items-center justify-between py-2 px-2 rounded-lg transition-colors" data-checkpoint-id="{{ $checkpoint->id }}" data-type="negative">
+                                            <span class="text-sm text-gray-700 pr-2">{{ $negativeLabels[$index] ?? $checkpoint->name }}</span>
+                                            <div class="flex gap-2 flex-shrink-0">
+                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-green-600 transition-colors" data-value="1">✓</button>
+                                                <button type="button" class="checkpoint-btn p-1.5 text-lg font-medium text-gray-400 hover:text-red-600 transition-colors" data-value="0">✗</button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -778,14 +826,17 @@
             buttons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const value = btn.dataset.value;
+                    const newValue = value === '1';
+                    const currentValue = state.checkpointResponses[checkpointId];
 
-                    if (value === 'null') {
+                    // Toggle: if clicking the same value, deselect; otherwise select
+                    if (currentValue === newValue) {
                         delete state.checkpointResponses[checkpointId];
+                        updateCheckpointDisplay(row, null, type);
                     } else {
-                        state.checkpointResponses[checkpointId] = value === '1';
+                        state.checkpointResponses[checkpointId] = newValue;
+                        updateCheckpointDisplay(row, newValue, type);
                     }
-
-                    updateCheckpointDisplay(row, value === 'null' ? null : value === '1', type);
                 });
             });
 
@@ -796,21 +847,29 @@
 
         function updateCheckpointDisplay(row, observed, type) {
             const buttons = row.querySelectorAll('.checkpoint-btn');
+            
+            // Reset row background
+            row.classList.remove('bg-green-50', 'bg-red-50');
 
             buttons.forEach(btn => {
-                const value = btn.dataset.value;
-                btn.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'bg-gray-100');
+                const value = btn.dataset.value === '1';
+                // Reset icon colors
+                btn.classList.remove('text-green-600', 'text-red-600', 'text-gray-400');
 
-                if (value === 'null') {
-                    btn.classList.add(observed === null ? 'bg-gray-200' : 'bg-gray-100');
-                } else if (value === '1') {
-                    if (observed === true) {
-                        btn.classList.add(type === 'positive' ? 'bg-green-500' : 'bg-red-500', 'text-white');
-                    }
+                if (observed === null) {
+                    // Neutral state
+                    btn.classList.add('text-gray-400');
+                } else if (value && observed === true) {
+                    // Yes selected
+                    btn.classList.add('text-green-600');
+                    row.classList.add('bg-green-50');
+                } else if (!value && observed === false) {
+                    // No selected
+                    btn.classList.add('text-red-600');
+                    row.classList.add('bg-red-50');
                 } else {
-                    if (observed === false) {
-                        btn.classList.add(type === 'positive' ? 'bg-red-500' : 'bg-green-500', 'text-white');
-                    }
+                    // Unselected button
+                    btn.classList.add('text-gray-400');
                 }
             });
         }
@@ -922,6 +981,29 @@
 
             saveGrade('submitted');
         });
+
+        // ========================================
+        // Training Details Accordion
+        // ========================================
+        function toggleTrainingDetails(categoryId) {
+            const detailsDiv = document.getElementById(`training-details-${categoryId}`);
+            const chevron = document.getElementById(`training-chevron-${categoryId}`);
+            const toggleText = document.getElementById(`training-toggle-text-${categoryId}`);
+            
+            if (detailsDiv && chevron && toggleText) {
+                const isHidden = detailsDiv.classList.contains('hidden');
+                
+                if (isHidden) {
+                    detailsDiv.classList.remove('hidden');
+                    chevron.style.transform = 'rotate(90deg)';
+                    toggleText.textContent = 'Hide details';
+                } else {
+                    detailsDiv.classList.add('hidden');
+                    chevron.style.transform = 'rotate(0deg)';
+                    toggleText.textContent = 'Show details';
+                }
+            }
+        }
 
         // ========================================
         // Initialize

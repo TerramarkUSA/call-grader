@@ -11,6 +11,7 @@ class RubricCategory extends Model
         'name',
         'external_id',
         'description',
+        'training_reference',
         'weight',
         'scoring_criteria',
         'sort_order',
