@@ -170,6 +170,17 @@
                                 <h2 class="text-lg font-semibold text-gray-900">Transcript</h2>
                                 <p class="text-sm text-gray-500">{{ count($transcript) }} utterances - Click any line to add a coaching note</p>
                             </div>
+                            <button
+                                    id="sync-to-audio-btn"
+                                    type="button"
+                                    class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center gap-1.5 transition-colors"
+                                    title="Scroll transcript to current audio position"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                    Sync to Audio
+                                </button>
                             @if($isMultichannel)
                                 <button
                                     id="swap-speakers-btn"
@@ -785,7 +796,7 @@
                     if (currentUtteranceIndex !== index) {
                         utterances.forEach(u => u.classList.remove('utterance-active'));
                         utterance.classList.add('utterance-active');
-                        utterance.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Auto-scroll disabled - user can scroll freely
                         currentUtteranceIndex = index;
                     }
                 }
@@ -1053,6 +1064,17 @@
         // ========================================
         updateOverallScore();
         loadNotes();
+
+        // ========================================
+        // Sync to Audio
+        // ========================================
+        function syncTranscriptToAudio() {
+            if (currentUtteranceIndex >= 0 && utterances[currentUtteranceIndex]) {
+                utterances[currentUtteranceIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        document.getElementById('sync-to-audio-btn').addEventListener('click', syncTranscriptToAudio);
 
         // ========================================
         // Swap Speakers (Multichannel)
