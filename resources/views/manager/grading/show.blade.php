@@ -349,7 +349,7 @@
                         <!-- Categories -->
                         <div class="space-y-4">
                             @foreach($categories as $category)
-                                <div class="category-card" data-category-id="{{ $category->id }}" data-weight="{{ $category->weight }}">
+                                <div class="category-card border border-gray-200 rounded-lg p-3" data-category-id="{{ $category->id }}" data-weight="{{ $category->weight }}">
                                     <div class="mb-2">
                                         <h4 class="font-medium text-gray-900 text-sm">{{ $category->name }}</h4>
                                         @if($category->description)
