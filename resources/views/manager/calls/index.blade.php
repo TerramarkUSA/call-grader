@@ -438,11 +438,14 @@
                     dateStart.value = twoWeeksAgo.toISOString().split('T')[0];
                     dateEnd.value = today.toISOString().split('T')[0];
                 }
+                // Don't auto-submit for custom - user needs to pick dates first
             } else {
                 customRange.style.display = 'none';
                 // Clear custom date values when switching away from custom
                 dateStart.value = '';
                 dateEnd.value = '';
+                // Auto-submit form for non-custom date filters
+                select.form.submit();
             }
         }
     </script>
