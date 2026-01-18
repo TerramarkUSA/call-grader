@@ -205,7 +205,7 @@
                                 $isRep = $effectiveSpeaker === 0;
                             @endphp
                             <div
-                                class="utterance p-3 mb-3 rounded-lg {{ $isRep ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-green-50 border-l-4 border-green-400' }} cursor-pointer hover:bg-gray-100 transition-colors"
+                                class="utterance group relative p-3 pr-10 mb-3 rounded-lg {{ $isRep ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-green-50 border-l-4 border-green-400' }} cursor-pointer hover:bg-gray-100 transition-colors"
                                 data-index="{{ $index }}"
                                 data-start="{{ $utterance['start'] ?? 0 }}"
                                 data-end="{{ $utterance['end'] ?? 0 }}"
@@ -238,6 +238,17 @@
 
                                 <!-- Text -->
                                 <p class="text-sm text-gray-700 leading-relaxed">{{ $utterance['text'] ?? '' }}</p>
+
+                                <!-- Add Note Button (Gutter) -->
+                                <button
+                                    type="button"
+                                    class="add-note-btn absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white shadow-sm border border-gray-200 rounded-full p-1.5 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-gray-400 transition-all"
+                                    title="Add note"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
                             </div>
                         @empty
                             <div class="px-6 py-12 text-center text-gray-500">
@@ -764,27 +775,35 @@
         let currentUtteranceIndex = -1;
 
         utterances.forEach((utterance, index) => {
+            // Click utterance body → seek audio
             utterance.addEventListener('click', (e) => {
-                const start = parseFloat(utterance.dataset.start);
-                const end = parseFloat(utterance.dataset.end);
-                const text = utterance.dataset.text;
-                const idx = parseInt(utterance.dataset.index);
-
-                openAddNoteModal({
-                    lineIndexStart: idx,
-                    lineIndexEnd: idx,
-                    timestampStart: start,
-                    timestampEnd: end,
-                    text: text,
-                });
-            });
-
-            utterance.addEventListener('dblclick', (e) => {
-                e.stopPropagation();
+                // Ignore if clicking the add note button
+                if (e.target.closest('.add-note-btn')) return;
+                
                 const start = parseFloat(utterance.dataset.start);
                 audio.currentTime = start;
                 audio.play();
             });
+
+            // Click (+) button → open add note modal
+            const addNoteBtn = utterance.querySelector('.add-note-btn');
+            if (addNoteBtn) {
+                addNoteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const start = parseFloat(utterance.dataset.start);
+                    const end = parseFloat(utterance.dataset.end);
+                    const text = utterance.dataset.text;
+                    const idx = parseInt(utterance.dataset.index);
+
+                    openAddNoteModal({
+                        lineIndexStart: idx,
+                        lineIndexEnd: idx,
+                        timestampStart: start,
+                        timestampEnd: end,
+                        text: text,
+                    });
+                });
+            }
         });
 
         function highlightCurrentUtterance(currentTime) {
