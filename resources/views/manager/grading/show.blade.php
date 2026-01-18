@@ -194,7 +194,7 @@
                                 $isRep = $effectiveSpeaker === 0;
                             @endphp
                             <div
-                                class="utterance p-3 mb-3 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                                class="utterance p-3 mb-3 rounded-lg {{ $isRep ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-gray-50' }} cursor-pointer hover:bg-gray-100 transition-colors"
                                 data-index="{{ $index }}"
                                 data-start="{{ $utterance['start'] ?? 0 }}"
                                 data-end="{{ $utterance['end'] ?? 0 }}"
