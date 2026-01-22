@@ -68,9 +68,12 @@ class SalesforceController extends Controller
             'sf_client_secret' => Crypt::encryptString($validated['sf_client_secret']),
         ]);
 
+        // Store account ID in session for callback
+        session(['sf_connecting_account_id' => $account->id]);
+
         // Automatically redirect to OAuth flow after saving
         $service = new SalesforceService($account);
-        $redirectUri = route('admin.salesforce.callback', ['account' => $account->id]);
+        $redirectUri = route('admin.salesforce.callback');
 
         return redirect($service->getAuthorizationUrl($redirectUri));
     }
@@ -81,21 +84,35 @@ class SalesforceController extends Controller
             return back()->with('error', 'Please save credentials first.');
         }
 
+        // Store account ID in session for callback
+        session(['sf_connecting_account_id' => $account->id]);
+
         $service = new SalesforceService($account);
-        $redirectUri = route('admin.salesforce.callback', ['account' => $account->id]);
+        $redirectUri = route('admin.salesforce.callback');
 
         return redirect($service->getAuthorizationUrl($redirectUri));
     }
 
-    public function callback(Request $request, Account $account)
+    public function callback(Request $request)
     {
+        // Get account ID from session
+        $accountId = session('sf_connecting_account_id');
+        session()->forget('sf_connecting_account_id');
+
+        if (!$accountId) {
+            return redirect()->route('admin.salesforce.index')
+                ->with('error', 'Session expired. Please try connecting again.');
+        }
+
+        $account = Account::findOrFail($accountId);
+
         if ($request->has('error')) {
             return redirect()->route('admin.salesforce.index')
                 ->with('error', 'Salesforce authorization failed: ' . $request->get('error_description'));
         }
 
         $service = new SalesforceService($account);
-        $redirectUri = route('admin.salesforce.callback', ['account' => $account->id]);
+        $redirectUri = route('admin.salesforce.callback');
 
         if ($service->handleCallback($request->get('code'), $redirectUri)) {
             return redirect()->route('admin.salesforce.index')

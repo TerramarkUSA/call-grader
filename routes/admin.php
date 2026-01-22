@@ -96,7 +96,7 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
             Route::get('/', [SalesforceController::class, 'index'])->name('index');
             Route::post('/{account}/credentials', [SalesforceController::class, 'saveCredentials'])->name('credentials');
             Route::get('/{account}/connect', [SalesforceController::class, 'connect'])->name('connect');
-            Route::get('/{account}/callback', [SalesforceController::class, 'callback'])->name('callback');
+            Route::get('/callback', [SalesforceController::class, 'callback'])->name('callback');
             Route::post('/{account}/disconnect', [SalesforceController::class, 'disconnect'])->name('disconnect');
             Route::post('/{account}/test', [SalesforceController::class, 'testConnection'])->name('test');
             Route::post('/{account}/field-mapping', [SalesforceController::class, 'saveFieldMapping'])->name('field-mapping');
