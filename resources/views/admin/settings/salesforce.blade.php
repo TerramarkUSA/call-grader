@@ -33,150 +33,180 @@
             </div>
         @endif
 
-        <!-- Per-Account Connection -->
-        <div class="space-y-6 mb-8">
-            @foreach($accounts as $account)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">{{ $account['name'] }}</h3>
-                            <p class="text-sm text-gray-500">
-                                @if($account['sf_connected'])
-                                    <span class="text-green-600">● Connected</span>
-                                    @if($account['sf_connected_at'])
-                                        <span class="ml-2">since {{ \Carbon\Carbon::parse($account['sf_connected_at'])->format('M j, Y') }}</span>
-                                    @endif
-                                @else
-                                    <span class="text-gray-400">● Not connected</span>
-                                @endif
-                            </p>
-                        </div>
-                        @if($account['sf_connected'])
-                            <div class="flex gap-2">
-                                <button onclick="testConnection({{ $account['id'] }})" class="text-sm text-blue-600 hover:text-blue-700">
-                                    Test
-                                </button>
-                                <form method="POST" action="{{ route('admin.salesforce.disconnect', $account['id']) }}" class="inline">
-                                    @csrf
-                                    <button type="submit" class="text-sm text-red-600 hover:text-red-700">
-                                        Disconnect
-                                    </button>
-                                </form>
-                            </div>
+        <!-- Global Connection -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Salesforce Connection</h3>
+                    <p class="text-sm text-gray-500">
+                        @if($sfConnected)
+                            <span class="text-green-600">● Connected</span>
+                            @if($sfConnectedAt)
+                                <span class="ml-2">since {{ \Carbon\Carbon::parse($sfConnectedAt)->format('M j, Y') }}</span>
+                            @endif
+                        @else
+                            <span class="text-gray-400">● Not connected</span>
                         @endif
-                    </div>
-
-                    <!-- Credentials Form (if not connected) -->
-                    @if(!$account['sf_connected'])
-                        <form method="POST" action="{{ route('admin.salesforce.credentials', $account['id']) }}" class="space-y-4">
+                    </p>
+                </div>
+                @if($sfConnected)
+                    <div class="flex gap-2">
+                        <button onclick="testConnection()" class="text-sm text-blue-600 hover:text-blue-700">
+                            Test
+                        </button>
+                        <form method="POST" action="{{ route('admin.salesforce.disconnect') }}" class="inline">
                             @csrf
+                            <button type="submit" class="text-sm text-red-600 hover:text-red-700">
+                                Disconnect
+                            </button>
+                        </form>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Credentials Form (if not connected) -->
+            @if(!$sfConnected)
+                <form method="POST" action="{{ route('admin.salesforce.credentials') }}" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Instance URL</label>
+                        <input
+                            type="url"
+                            name="sf_instance_url"
+                            value="{{ $sfInstanceUrl }}"
+                            placeholder="https://yourorg.my.salesforce.com"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                            <input
+                                type="text"
+                                name="sf_client_id"
+                                value="{{ $sfClientId }}"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                            <input
+                                type="password"
+                                name="sf_client_secret"
+                                placeholder="Enter client secret"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                            Save & Connect to Salesforce
+                        </button>
+                    </div>
+                </form>
+            @endif
+
+            <!-- Field Mapping (if connected) -->
+            @if($sfConnected)
+                <div class="mt-6 pt-6 border-t border-gray-100">
+                    <h4 class="font-medium text-gray-900 mb-4">Field Mapping</h4>
+                    <form method="POST" action="{{ route('admin.salesforce.field-mapping') }}">
+                        @csrf
+                        <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Instance URL</label>
-                                <input
-                                    type="url"
-                                    name="sf_instance_url"
-                                    value="{{ $account['sf_instance_url'] }}"
-                                    placeholder="https://yourorg.my.salesforce.com"
-                                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
+                                <label class="block text-gray-600 mb-1">Chance Object</label>
+                                <input name="chance_object" value="{{ $fieldMapping['chance_object'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                            <div>
+                                <label class="block text-gray-600 mb-1">CTM Call ID Field</label>
+                                <input name="ctm_call_id_field" value="{{ $fieldMapping['ctm_call_id_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Project Field</label>
+                                <input name="project_field" value="{{ $fieldMapping['project_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Office Field</label>
+                                <input name="office_field" value="{{ $fieldMapping['office_field'] ?? '' }}" placeholder="e.g., Project_Office__c" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Land Sale Field</label>
+                                <input name="land_sale_field" value="{{ $fieldMapping['land_sale_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Contact Status Field</label>
+                                <input name="contact_status_field" value="{{ $fieldMapping['contact_status_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Appointment Made Field</label>
+                                <input name="appointment_made_field" value="{{ $fieldMapping['appointment_made_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Toured Property Field</label>
+                                <input name="toured_property_field" value="{{ $fieldMapping['toured_property_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-1">Opportunity Created Field</label>
+                                <input name="opportunity_created_field" value="{{ $fieldMapping['opportunity_created_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                            </div>
+                        </div>
+                        <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                            Save Field Mapping
+                        </button>
+                    </form>
+                </div>
+            @endif
+        </div>
+
+        <!-- Office Mapping -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Office Mapping</h3>
+            <p class="text-sm text-gray-500 mb-4">Map your offices to the Salesforce office field value</p>
+            <form method="POST" action="{{ route('admin.salesforce.office-mapping') }}">
+                @csrf
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100">
+                            <th class="text-left py-2 text-gray-500 font-medium">Office</th>
+                            <th class="text-left py-2 text-gray-500 font-medium">SF Office Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($accounts as $index => $account)
+                            <tr class="border-b border-gray-50">
+                                <td class="py-3">{{ $account->name }}</td>
+                                <td class="py-3">
+                                    <input type="hidden" name="mappings[{{ $index }}][account_id]" value="{{ $account->id }}">
                                     <input
                                         type="text"
-                                        name="sf_client_id"
-                                        value="{{ $account['sf_client_id'] }}"
-                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        name="mappings[{{ $index }}][sf_office_name]"
+                                        value="{{ $account->sf_office_name }}"
+                                        placeholder="e.g., Dallas"
+                                        class="border border-gray-200 rounded-lg px-2 py-1 text-sm w-full"
                                     >
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
-                                    <input
-                                        type="password"
-                                        name="sf_client_secret"
-                                        placeholder="Enter client secret"
-                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-                                    Save & Connect to Salesforce
-                                </button>
-                            </div>
-                        </form>
-                    @endif
-
-                    <!-- Field Mapping (if connected) -->
-                    @if($account['sf_connected'])
-                        <div class="mt-6 pt-6 border-t border-gray-100">
-                            <h4 class="font-medium text-gray-900 mb-4">Field Mapping</h4>
-                            <form method="POST" action="{{ route('admin.salesforce.field-mapping', $account['id']) }}">
-                                @csrf
-                                @php
-                                    $mapping = array_merge($defaultFieldMapping, $account['sf_field_mapping']);
-                                @endphp
-                                <div class="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Chance Object</label>
-                                        <input name="chance_object" value="{{ $mapping['chance_object'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">CTM Call ID Field</label>
-                                        <input name="ctm_call_id_field" value="{{ $mapping['ctm_call_id_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Project Field</label>
-                                        <input name="project_field" value="{{ $mapping['project_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Land Sale Field</label>
-                                        <input name="land_sale_field" value="{{ $mapping['land_sale_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Contact Status Field</label>
-                                        <input name="contact_status_field" value="{{ $mapping['contact_status_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Appointment Made Field</label>
-                                        <input name="appointment_made_field" value="{{ $mapping['appointment_made_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Toured Property Field</label>
-                                        <input name="toured_property_field" value="{{ $mapping['toured_property_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-600 mb-1">Opportunity Created Field</label>
-                                        <input name="opportunity_created_field" value="{{ $mapping['opportunity_created_field'] }}" class="w-full border border-gray-200 rounded-lg px-3 py-2">
-                                    </div>
-                                </div>
-                                <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-                                    Save Field Mapping
-                                </button>
-                            </form>
-                        </div>
-                    @endif
-                </div>
-            @endforeach
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                    Save Office Mapping
+                </button>
+            </form>
         </div>
 
         <!-- Rep Mapping -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">Rep Mapping</h3>
-                <div class="flex gap-2">
-                    @foreach($accounts as $account)
-                        @if($account['sf_connected'])
-                            <form method="POST" action="{{ route('admin.salesforce.auto-match-reps', $account['id']) }}" class="inline">
-                                @csrf
-                                <button type="submit" class="text-sm text-blue-600 hover:text-blue-700">
-                                    Auto-Match {{ $account['name'] }} by Email
-                                </button>
-                            </form>
-                        @endif
-                    @endforeach
-                </div>
+                @if($sfConnected)
+                    <form method="POST" action="{{ route('admin.salesforce.auto-match-reps') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="text-sm text-blue-600 hover:text-blue-700">
+                            Auto-Match by Email
+                        </button>
+                    </form>
+                @endif
             </div>
             <form method="POST" action="{{ route('admin.salesforce.rep-mapping') }}">
                 @csrf
@@ -216,7 +246,7 @@
         <!-- Project Mapping -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Project Mapping</h3>
-            <p class="text-sm text-gray-500 mb-4">Map your projects to the Salesforce Project__c field value</p>
+            <p class="text-sm text-gray-500 mb-4">Map your projects to the Salesforce Project field value</p>
             <form method="POST" action="{{ route('admin.salesforce.project-mapping') }}">
                 @csrf
                 <table class="w-full text-sm">
@@ -254,9 +284,9 @@
     </div>
 
     <script>
-        async function testConnection(accountId) {
+        async function testConnection() {
             try {
-                const response = await fetch(`/admin/salesforce/${accountId}/test`, {
+                const response = await fetch('/admin/salesforce/test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -91,19 +91,20 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
         Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
         Route::get('/settings/mail-config', [SettingsController::class, 'mailConfig'])->name('settings.mail-config');
 
-        // Salesforce routes
+        // Salesforce routes (global integration)
         Route::prefix('salesforce')->name('salesforce.')->group(function () {
             Route::get('/', [SalesforceController::class, 'index'])->name('index');
-            Route::post('/{account}/credentials', [SalesforceController::class, 'saveCredentials'])->name('credentials');
-            Route::get('/{account}/connect', [SalesforceController::class, 'connect'])->name('connect');
+            Route::post('/credentials', [SalesforceController::class, 'saveCredentials'])->name('credentials');
+            Route::get('/connect', [SalesforceController::class, 'connect'])->name('connect');
             Route::get('/callback', [SalesforceController::class, 'callback'])->name('callback');
-            Route::post('/{account}/disconnect', [SalesforceController::class, 'disconnect'])->name('disconnect');
-            Route::post('/{account}/test', [SalesforceController::class, 'testConnection'])->name('test');
-            Route::post('/{account}/field-mapping', [SalesforceController::class, 'saveFieldMapping'])->name('field-mapping');
-            Route::get('/{account}/users', [SalesforceController::class, 'getUsers'])->name('users');
-            Route::post('/{account}/auto-match-reps', [SalesforceController::class, 'autoMatchReps'])->name('auto-match-reps');
+            Route::post('/disconnect', [SalesforceController::class, 'disconnect'])->name('disconnect');
+            Route::post('/test', [SalesforceController::class, 'testConnection'])->name('test');
+            Route::post('/field-mapping', [SalesforceController::class, 'saveFieldMapping'])->name('field-mapping');
+            Route::get('/users', [SalesforceController::class, 'getUsers'])->name('users');
+            Route::post('/auto-match-reps', [SalesforceController::class, 'autoMatchReps'])->name('auto-match-reps');
             Route::post('/rep-mapping', [SalesforceController::class, 'saveRepMapping'])->name('rep-mapping');
             Route::post('/project-mapping', [SalesforceController::class, 'saveProjectMapping'])->name('project-mapping');
+            Route::post('/office-mapping', [SalesforceController::class, 'saveOfficeMapping'])->name('office-mapping');
         });
     });
 

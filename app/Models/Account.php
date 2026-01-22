@@ -18,7 +18,7 @@ class Account extends Model
         'allow_multiple_grades',
         'sync_settings',
         'last_sync_at',
-        // Salesforce integration
+        // Salesforce integration (legacy per-account fields kept for migration)
         'sf_instance_url',
         'sf_client_id',
         'sf_client_secret',
@@ -27,6 +27,7 @@ class Account extends Model
         'sf_token_expires_at',
         'sf_connected_at',
         'sf_field_mapping',
+        'sf_office_name',
     ];
 
     protected $casts = [

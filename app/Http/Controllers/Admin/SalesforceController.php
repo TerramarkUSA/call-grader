@@ -6,25 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Rep;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Services\SalesforceService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 
 class SalesforceController extends Controller
 {
     public function index()
     {
+        $service = new SalesforceService();
+
+        // Global connection status
+        $sfConnected = $service->isConnected();
+        $sfInstanceUrl = Setting::get('sf_instance_url');
+        $sfClientId = Setting::get('sf_client_id');
+        $sfConnectedAt = Setting::get('sf_connected_at');
+
+        // Field mapping
+        $fieldMapping = $service->getFieldMapping();
+
+        // Accounts for office mapping
         $accounts = Account::where('is_active', true)
-            ->get()
-            ->map(fn($a) => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'sf_instance_url' => $a->sf_instance_url,
-                'sf_client_id' => $a->sf_client_id,
-                'sf_connected' => $a->sf_connected_at !== null,
-                'sf_connected_at' => $a->sf_connected_at,
-                'sf_field_mapping' => $a->sf_field_mapping ?? [],
-            ]);
+            ->get(['id', 'name', 'sf_office_name']);
 
         $reps = Rep::with('account:id,name')
             ->where('is_active', true)
@@ -34,27 +37,19 @@ class SalesforceController extends Controller
             ->where('is_active', true)
             ->get(['id', 'name', 'account_id', 'sf_project_name']);
 
-        // Default field mapping for display
-        $defaultFieldMapping = [
-            'chance_object' => 'Chance__c',
-            'ctm_call_id_field' => 'CTM_Call_ID__c',
-            'project_field' => 'Project__c',
-            'land_sale_field' => 'Land_Sale__c',
-            'contact_status_field' => 'Contact_Status__c',
-            'appointment_made_field' => 'Appointment_Made__c',
-            'toured_property_field' => 'Toured_Property__c',
-            'opportunity_created_field' => 'Opportunity_Created__c',
-        ];
-
         return view('admin.settings.salesforce', compact(
+            'sfConnected',
+            'sfInstanceUrl',
+            'sfClientId',
+            'sfConnectedAt',
+            'fieldMapping',
             'accounts',
             'reps',
-            'projects',
-            'defaultFieldMapping'
+            'projects'
         ));
     }
 
-    public function saveCredentials(Request $request, Account $account)
+    public function saveCredentials(Request $request)
     {
         $validated = $request->validate([
             'sf_instance_url' => 'required|url',
@@ -62,32 +57,27 @@ class SalesforceController extends Controller
             'sf_client_secret' => 'required|string',
         ]);
 
-        $account->update([
-            'sf_instance_url' => rtrim($validated['sf_instance_url'], '/'),
-            'sf_client_id' => $validated['sf_client_id'],
-            'sf_client_secret' => Crypt::encryptString($validated['sf_client_secret']),
-        ]);
-
-        // Store account ID in session for callback
-        session(['sf_connecting_account_id' => $account->id]);
+        Setting::set('sf_instance_url', rtrim($validated['sf_instance_url'], '/'));
+        Setting::set('sf_client_id', $validated['sf_client_id']);
+        Setting::setEncrypted('sf_client_secret', $validated['sf_client_secret']);
 
         // Automatically redirect to OAuth flow after saving
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
         $redirectUri = route('admin.salesforce.callback');
 
         return redirect($service->getAuthorizationUrl($redirectUri));
     }
 
-    public function connect(Account $account)
+    public function connect()
     {
-        if (!$account->sf_instance_url || !$account->sf_client_id) {
+        $instanceUrl = Setting::get('sf_instance_url');
+        $clientId = Setting::get('sf_client_id');
+
+        if (!$instanceUrl || !$clientId) {
             return back()->with('error', 'Please save credentials first.');
         }
 
-        // Store account ID in session for callback
-        session(['sf_connecting_account_id' => $account->id]);
-
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
         $redirectUri = route('admin.salesforce.callback');
 
         return redirect($service->getAuthorizationUrl($redirectUri));
@@ -95,23 +85,12 @@ class SalesforceController extends Controller
 
     public function callback(Request $request)
     {
-        // Get account ID from session
-        $accountId = session('sf_connecting_account_id');
-        session()->forget('sf_connecting_account_id');
-
-        if (!$accountId) {
-            return redirect()->route('admin.salesforce.index')
-                ->with('error', 'Session expired. Please try connecting again.');
-        }
-
-        $account = Account::findOrFail($accountId);
-
         if ($request->has('error')) {
             return redirect()->route('admin.salesforce.index')
                 ->with('error', 'Salesforce authorization failed: ' . $request->get('error_description'));
         }
 
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
         $redirectUri = route('admin.salesforce.callback');
 
         if ($service->handleCallback($request->get('code'), $redirectUri)) {
@@ -123,17 +102,17 @@ class SalesforceController extends Controller
             ->with('error', 'Failed to connect to Salesforce.');
     }
 
-    public function disconnect(Account $account)
+    public function disconnect()
     {
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
         $service->disconnect();
 
         return back()->with('success', 'Salesforce disconnected.');
     }
 
-    public function testConnection(Account $account)
+    public function testConnection()
     {
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
 
         if (!$service->isConnected()) {
             return response()->json(['success' => false, 'message' => 'Not connected']);
@@ -148,7 +127,7 @@ class SalesforceController extends Controller
         return response()->json(['success' => true, 'message' => 'Connection successful']);
     }
 
-    public function saveFieldMapping(Request $request, Account $account)
+    public function saveFieldMapping(Request $request)
     {
         $validated = $request->validate([
             'chance_object' => 'required|string',
@@ -159,16 +138,18 @@ class SalesforceController extends Controller
             'appointment_made_field' => 'required|string',
             'toured_property_field' => 'required|string',
             'opportunity_created_field' => 'required|string',
+            'office_field' => 'nullable|string',
         ]);
 
-        $account->update(['sf_field_mapping' => $validated]);
+        $service = new SalesforceService();
+        $service->setFieldMapping($validated);
 
         return back()->with('success', 'Field mapping saved.');
     }
 
-    public function getUsers(Account $account)
+    public function getUsers()
     {
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
 
         if (!$service->isConnected()) {
             return response()->json([]);
@@ -193,9 +174,9 @@ class SalesforceController extends Controller
         return back()->with('success', 'Rep mapping saved.');
     }
 
-    public function autoMatchReps(Account $account)
+    public function autoMatchReps()
     {
-        $service = new SalesforceService($account);
+        $service = new SalesforceService();
 
         if (!$service->isConnected()) {
             return back()->with('error', 'Salesforce not connected.');
@@ -203,8 +184,7 @@ class SalesforceController extends Controller
 
         $sfUsers = $service->getUsers();
         $matched = 0;
-        $reps = Rep::where('account_id', $account->id)
-            ->whereNotNull('email')
+        $reps = Rep::whereNotNull('email')
             ->whereNull('sf_user_id')
             ->get();
 
@@ -235,5 +215,21 @@ class SalesforceController extends Controller
         }
 
         return back()->with('success', 'Project mapping saved.');
+    }
+
+    public function saveOfficeMapping(Request $request)
+    {
+        $validated = $request->validate([
+            'mappings' => 'required|array',
+            'mappings.*.account_id' => 'required|exists:accounts,id',
+            'mappings.*.sf_office_name' => 'nullable|string|max:255',
+        ]);
+
+        foreach ($validated['mappings'] as $mapping) {
+            Account::where('id', $mapping['account_id'])
+                ->update(['sf_office_name' => $mapping['sf_office_name'] ?: null]);
+        }
+
+        return back()->with('success', 'Office mapping saved.');
     }
 }

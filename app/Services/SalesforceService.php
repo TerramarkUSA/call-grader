@@ -2,23 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\Account;
 use App\Models\Call;
 use App\Models\Rep;
 use App\Models\Project;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
 class SalesforceService
 {
-    protected Account $account;
-
-    public function __construct(Account $account)
-    {
-        $this->account = $account;
-    }
-
     // ==================
     // OAuth Methods
     // ==================
@@ -27,20 +19,24 @@ class SalesforceService
     {
         $params = http_build_query([
             'response_type' => 'code',
-            'client_id' => $this->account->sf_client_id,
+            'client_id' => Setting::get('sf_client_id'),
             'redirect_uri' => $redirectUri,
             'scope' => 'api refresh_token',
         ]);
 
-        return $this->account->sf_instance_url . '/services/oauth2/authorize?' . $params;
+        return Setting::get('sf_instance_url') . '/services/oauth2/authorize?' . $params;
     }
 
     public function handleCallback(string $code, string $redirectUri): bool
     {
-        $response = Http::asForm()->post($this->account->sf_instance_url . '/services/oauth2/token', [
+        $instanceUrl = Setting::get('sf_instance_url');
+        $clientId = Setting::get('sf_client_id');
+        $clientSecret = Setting::getEncrypted('sf_client_secret');
+
+        $response = Http::asForm()->post($instanceUrl . '/services/oauth2/token', [
             'grant_type' => 'authorization_code',
-            'client_id' => $this->account->sf_client_id,
-            'client_secret' => $this->getDecryptedSecret(),
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
             'redirect_uri' => $redirectUri,
             'code' => $code,
         ]);
@@ -52,27 +48,30 @@ class SalesforceService
 
         $data = $response->json();
 
-        $this->account->update([
-            'sf_access_token' => Crypt::encryptString($data['access_token']),
-            'sf_refresh_token' => Crypt::encryptString($data['refresh_token']),
-            'sf_token_expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
-            'sf_connected_at' => now(),
-        ]);
+        Setting::setEncrypted('sf_access_token', $data['access_token']);
+        Setting::setEncrypted('sf_refresh_token', $data['refresh_token']);
+        Setting::set('sf_token_expires_at', now()->addSeconds($data['expires_in'] ?? 7200)->toIso8601String());
+        Setting::set('sf_connected_at', now()->toIso8601String());
 
         return true;
     }
 
     public function refreshToken(): bool
     {
-        if (!$this->account->sf_refresh_token) {
+        $refreshToken = Setting::getEncrypted('sf_refresh_token');
+        if (!$refreshToken) {
             return false;
         }
 
-        $response = Http::asForm()->post($this->account->sf_instance_url . '/services/oauth2/token', [
+        $instanceUrl = Setting::get('sf_instance_url');
+        $clientId = Setting::get('sf_client_id');
+        $clientSecret = Setting::getEncrypted('sf_client_secret');
+
+        $response = Http::asForm()->post($instanceUrl . '/services/oauth2/token', [
             'grant_type' => 'refresh_token',
-            'client_id' => $this->account->sf_client_id,
-            'client_secret' => $this->getDecryptedSecret(),
-            'refresh_token' => Crypt::decryptString($this->account->sf_refresh_token),
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'refresh_token' => $refreshToken,
         ]);
 
         if (!$response->successful()) {
@@ -82,53 +81,43 @@ class SalesforceService
 
         $data = $response->json();
 
-        $this->account->update([
-            'sf_access_token' => Crypt::encryptString($data['access_token']),
-            'sf_token_expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
-        ]);
+        Setting::setEncrypted('sf_access_token', $data['access_token']);
+        Setting::set('sf_token_expires_at', now()->addSeconds($data['expires_in'] ?? 7200)->toIso8601String());
 
         return true;
     }
 
     public function isConnected(): bool
     {
-        return $this->account->sf_connected_at !== null
-            && $this->account->sf_refresh_token !== null;
+        return Setting::get('sf_connected_at') !== null
+            && Setting::getEncrypted('sf_refresh_token') !== null;
     }
 
     public function disconnect(): void
     {
-        $this->account->update([
-            'sf_access_token' => null,
-            'sf_refresh_token' => null,
-            'sf_token_expires_at' => null,
-            'sf_connected_at' => null,
-        ]);
+        Setting::set('sf_access_token', null);
+        Setting::set('sf_refresh_token', null);
+        Setting::set('sf_token_expires_at', null);
+        Setting::set('sf_connected_at', null);
     }
 
     protected function getAccessToken(): ?string
     {
-        if (!$this->account->sf_access_token) {
+        $accessToken = Setting::getEncrypted('sf_access_token');
+        if (!$accessToken) {
             return null;
         }
 
         // Refresh if expired or expiring soon
-        if ($this->account->sf_token_expires_at?->lt(now()->addMinutes(5))) {
+        $expiresAt = Setting::get('sf_token_expires_at');
+        if ($expiresAt && now()->gt(now()->parse($expiresAt)->subMinutes(5))) {
             if (!$this->refreshToken()) {
                 return null;
             }
-            $this->account->refresh();
+            $accessToken = Setting::getEncrypted('sf_access_token');
         }
 
-        return Crypt::decryptString($this->account->sf_access_token);
-    }
-
-    protected function getDecryptedSecret(): ?string
-    {
-        if (!$this->account->sf_client_secret) {
-            return null;
-        }
-        return Crypt::decryptString($this->account->sf_client_secret);
+        return $accessToken;
     }
 
     // ==================
@@ -142,8 +131,10 @@ class SalesforceService
             return null;
         }
 
+        $instanceUrl = Setting::get('sf_instance_url');
+
         $response = Http::withToken($token)
-            ->get($this->account->sf_instance_url . '/services/data/v59.0/query', [
+            ->get($instanceUrl . '/services/data/v59.0/query', [
                 'q' => $soql,
             ]);
 
@@ -198,9 +189,20 @@ class SalesforceService
             'appointment_made_field' => 'Appointment_Made__c',
             'toured_property_field' => 'Toured_Property__c',
             'opportunity_created_field' => 'Opportunity_Created__c',
+            'office_field' => 'Project_Office__c',
         ];
 
-        return array_merge($defaults, $this->account->sf_field_mapping ?? []);
+        $stored = Setting::get('sf_field_mapping');
+        if ($stored && is_string($stored)) {
+            $stored = json_decode($stored, true) ?? [];
+        }
+
+        return array_merge($defaults, $stored ?? []);
+    }
+
+    public function setFieldMapping(array $mapping): void
+    {
+        Setting::set('sf_field_mapping', json_encode($mapping));
     }
 
     // ==================

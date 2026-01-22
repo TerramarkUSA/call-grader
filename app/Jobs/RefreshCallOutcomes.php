@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\Account;
 use App\Models\Call;
 use App\Services\SalesforceService;
 use Illuminate\Bus\Queueable;
@@ -18,27 +17,26 @@ class RefreshCallOutcomes implements ShouldQueue
 
     public function handle(): void
     {
-        $accounts = Account::whereNotNull('sf_connected_at')->get();
+        $service = new SalesforceService();
 
-        foreach ($accounts as $account) {
-            $service = new SalesforceService($account);
-
-            $calls = Call::where('account_id', $account->id)
-                ->whereNotNull('sf_chance_id')
-                ->where('called_at', '>=', now()->subDays(90))
-                ->get();
-
-            $updated = 0;
-            foreach ($calls as $call) {
-                if ($service->refreshOutcomes($call)) {
-                    $updated++;
-                }
-            }
-
-            Log::info('Refreshed Salesforce outcomes', [
-                'account' => $account->name,
-                'calls_updated' => $updated
-            ]);
+        if (!$service->isConnected()) {
+            Log::info('Salesforce not connected, skipping outcome refresh');
+            return;
         }
+
+        $calls = Call::whereNotNull('sf_chance_id')
+            ->where('called_at', '>=', now()->subDays(90))
+            ->get();
+
+        $updated = 0;
+        foreach ($calls as $call) {
+            if ($service->refreshOutcomes($call)) {
+                $updated++;
+            }
+        }
+
+        Log::info('Refreshed Salesforce outcomes', [
+            'calls_updated' => $updated
+        ]);
     }
 }

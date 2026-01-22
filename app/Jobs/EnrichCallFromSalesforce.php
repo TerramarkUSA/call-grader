@@ -24,14 +24,13 @@ class EnrichCallFromSalesforce implements ShouldQueue
 
     public function handle(): void
     {
-        $account = $this->call->account;
+        $service = new SalesforceService();
 
-        if (!$account || !$account->sf_connected_at) {
+        if (!$service->isConnected()) {
             Log::info('Salesforce not connected, skipping enrichment', ['call_id' => $this->call->id]);
             return;
         }
 
-        $service = new SalesforceService($account);
         $success = $service->enrichCall($this->call);
 
         if (!$success) {
