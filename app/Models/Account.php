@@ -18,6 +18,15 @@ class Account extends Model
         'allow_multiple_grades',
         'sync_settings',
         'last_sync_at',
+        // Salesforce integration
+        'sf_instance_url',
+        'sf_client_id',
+        'sf_client_secret',
+        'sf_access_token',
+        'sf_refresh_token',
+        'sf_token_expires_at',
+        'sf_connected_at',
+        'sf_field_mapping',
     ];
 
     protected $casts = [
@@ -25,6 +34,10 @@ class Account extends Model
         'allow_multiple_grades' => 'boolean',
         'sync_settings' => 'array',
         'last_sync_at' => 'datetime',
+        // Salesforce
+        'sf_token_expires_at' => 'datetime',
+        'sf_connected_at' => 'datetime',
+        'sf_field_mapping' => 'array',
     ];
 
     public function setCtmApiKeyAttribute($value)

@@ -68,7 +68,11 @@ class SalesforceController extends Controller
             'sf_client_secret' => Crypt::encryptString($validated['sf_client_secret']),
         ]);
 
-        return back()->with('success', 'Salesforce credentials saved.');
+        // Automatically redirect to OAuth flow after saving
+        $service = new SalesforceService($account);
+        $redirectUri = route('admin.salesforce.callback', ['account' => $account->id]);
+
+        return redirect($service->getAuthorizationUrl($redirectUri));
     }
 
     public function connect(Account $account)

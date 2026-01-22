@@ -101,12 +101,9 @@
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200">
-                                    Save Credentials
+                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                                    Save & Connect to Salesforce
                                 </button>
-                                <a href="{{ route('admin.salesforce.connect', $account['id']) }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-                                    Connect to Salesforce
-                                </a>
                             </div>
                         </form>
                     @endif
