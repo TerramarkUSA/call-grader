@@ -134,20 +134,32 @@ class GradingController extends Controller
                 ? round(($scoreData['percentage'] / 100) * 4, 2)
                 : null;
 
+            // Check if grade already exists
+            $existingGrade = Grade::where('call_id', $call->id)
+                ->where('graded_by', Auth::id())
+                ->first();
+
+            // Build update data
+            $gradeData = [
+                'status' => $validated['status'],
+                'overall_score' => $overallScore,
+                'appointment_quality' => $validated['appointment_quality'],
+                'playback_seconds' => $validated['playback_seconds'],
+                'grading_completed_at' => $validated['status'] === 'submitted' ? now() : null,
+            ];
+
+            // Only set grading_started_at for new grades
+            if (!$existingGrade) {
+                $gradeData['grading_started_at'] = now();
+            }
+
             // Find or create grade
             $grade = Grade::updateOrCreate(
                 [
                     'call_id' => $call->id,
                     'graded_by' => Auth::id(),
                 ],
-                [
-                    'status' => $validated['status'],
-                    'overall_score' => $overallScore,
-                    'appointment_quality' => $validated['appointment_quality'],
-                    'playback_seconds' => $validated['playback_seconds'],
-                    'grading_started_at' => DB::raw('COALESCE(grading_started_at, NOW())'),
-                    'grading_completed_at' => $validated['status'] === 'submitted' ? now() : null,
-                ]
+                $gradeData
             );
 
             // Save category scores
