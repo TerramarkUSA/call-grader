@@ -23,6 +23,9 @@
                     @if(request('display_status'))
                         <input type="hidden" name="display_status" value="{{ request('display_status') }}">
                     @endif
+                    @if(request('grading_status'))
+                        <input type="hidden" name="grading_status" value="{{ request('grading_status') }}">
+                    @endif
                     @if(request('rep_id'))
                         <input type="hidden" name="rep_id" value="{{ request('rep_id') }}">
                     @endif
@@ -52,6 +55,7 @@
         <!-- Stat Cards -->
         @php
             $currentStatus = request('display_status');
+            $currentGradingStatus = request('grading_status');
             // Build base filter params to preserve across all links
             $filterParams = [
                 'account_id' => $selectedAccount->id,
@@ -66,6 +70,9 @@
             }
             if (request('project_id')) {
                 $filterParams['project_id'] = request('project_id');
+            }
+            if (request('grading_status')) {
+                $filterParams['grading_status'] = request('grading_status');
             }
         @endphp
         <div class="grid grid-cols-6 gap-4 mb-4">
@@ -166,6 +173,39 @@
             </a>
         </div>
 
+        <!-- Grading Status Quick Filter Chips -->
+        @php
+            // Build params without grading_status for the chips
+            $gradingFilterParams = array_diff_key($filterParams, ['grading_status' => '']);
+        @endphp
+        <div class="flex gap-2 mb-6">
+            <span class="text-sm text-gray-500 py-1.5">Action:</span>
+            <a href="{{ route('manager.calls.index', $gradingFilterParams) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ !$currentGradingStatus ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                All ({{ number_format($stats['total']) }})
+            </a>
+            <a href="{{ route('manager.calls.index', array_merge($gradingFilterParams, ['grading_status' => 'needs_processing'])) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ $currentGradingStatus === 'needs_processing' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <span class="inline-block w-2 h-2 rounded-full bg-blue-600 mr-1"></span>
+                Process ({{ number_format($gradingStats['needs_processing']) }})
+            </a>
+            <a href="{{ route('manager.calls.index', array_merge($gradingFilterParams, ['grading_status' => 'ready'])) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ $currentGradingStatus === 'ready' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <span class="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1"></span>
+                Ready ({{ number_format($gradingStats['ready']) }})
+            </a>
+            <a href="{{ route('manager.calls.index', array_merge($gradingFilterParams, ['grading_status' => 'in_progress'])) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ $currentGradingStatus === 'in_progress' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                In Progress ({{ number_format($gradingStats['in_progress']) }})
+            </a>
+            <a href="{{ route('manager.calls.index', array_merge($gradingFilterParams, ['grading_status' => 'graded'])) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ $currentGradingStatus === 'graded' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                Graded ({{ number_format($gradingStats['graded']) }})
+            </a>
+        </div>
+
         @if (session('success'))
             <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 text-sm">
                 {{ session('success') }}
@@ -218,6 +258,18 @@
                         <option value="">All Types</option>
                         @foreach($displayStatuses as $value => $label)
                             <option value="{{ $value }}" {{ request('display_status') == $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Action</label>
+                    <select name="grading_status" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Actions</option>
+                        @foreach($gradingStatuses as $value => $label)
+                            <option value="{{ $value }}" {{ request('grading_status') == $value ? 'selected' : '' }}>
                                 {{ $label }}
                             </option>
                         @endforeach
@@ -362,13 +414,22 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap">
-                                @if($call->transcript)
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center w-[72px] py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
+                                @php $gradingStatus = $call->grading_status; @endphp
+                                @if($gradingStatus === 'needs_processing')
+                                    <a href="{{ route('manager.calls.process', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                        Process
+                                    </a>
+                                @elseif($gradingStatus === 'ready')
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
                                         Grade
                                     </a>
+                                @elseif($gradingStatus === 'in_progress')
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-200 transition-colors">
+                                        In Progress
+                                    </a>
                                 @else
-                                    <a href="{{ route('manager.calls.process', $call) }}" class="inline-flex items-center justify-center w-[72px] py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                                        Process
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
+                                        Graded ✓
                                     </a>
                                 @endif
                             </td>

@@ -77,6 +77,16 @@ class Call extends Model
     ];
 
     /**
+     * Grading status labels
+     */
+    public const GRADING_STATUSES = [
+        'needs_processing' => 'Needs Processing',
+        'ready' => 'Ready to Grade',
+        'in_progress' => 'In Progress',
+        'graded' => 'Graded',
+    ];
+
+    /**
      * Get the derived display status based on dial_status and talk_time
      */
     public function getDisplayStatusAttribute(): string
@@ -172,6 +182,72 @@ class Call extends Model
             'voicemail' => $query->where('dial_status', 'voicemail'),
             'missed' => $query->whereIn('dial_status', ['no_answer', 'missed']),
             'busy' => $query->where('dial_status', 'busy'),
+            default => $query,
+        };
+    }
+
+    /**
+     * Get the grading status for this call
+     * Requires grades relationship to be loaded for efficiency
+     */
+    public function getGradingStatusAttribute(): string
+    {
+        // No transcript = needs processing
+        if (!$this->transcript) {
+            return 'needs_processing';
+        }
+
+        // Check grades - use loaded relationship if available
+        $grades = $this->relationLoaded('grades') ? $this->grades : $this->grades()->get();
+
+        if ($grades->isEmpty()) {
+            return 'ready';
+        }
+
+        // Check if any grade is submitted
+        if ($grades->where('status', 'submitted')->isNotEmpty()) {
+            return 'graded';
+        }
+
+        // Has draft grade(s)
+        return 'in_progress';
+    }
+
+    /**
+     * Get the grading status label
+     */
+    public function getGradingStatusLabelAttribute(): string
+    {
+        return self::GRADING_STATUSES[$this->grading_status] ?? 'Unknown';
+    }
+
+    /**
+     * Get the grading status color classes for badges/buttons
+     */
+    public function getGradingStatusColorAttribute(): string
+    {
+        return match ($this->grading_status) {
+            'needs_processing' => 'bg-blue-600 text-white',
+            'ready' => 'bg-blue-100 text-blue-700',
+            'in_progress' => 'bg-amber-100 text-amber-700',
+            'graded' => 'bg-green-100 text-green-700',
+            default => 'bg-gray-100 text-gray-600',
+        };
+    }
+
+    /**
+     * Scope to filter by grading status
+     */
+    public function scopeGradingStatus($query, string $status)
+    {
+        return match ($status) {
+            'needs_processing' => $query->whereNull('transcript'),
+            'ready' => $query->whereNotNull('transcript')
+                ->whereDoesntHave('grades'),
+            'in_progress' => $query->whereNotNull('transcript')
+                ->whereHas('grades', fn($q) => $q->where('status', 'draft'))
+                ->whereDoesntHave('grades', fn($q) => $q->where('status', 'submitted')),
+            'graded' => $query->whereHas('grades', fn($q) => $q->where('status', 'submitted')),
             default => $query,
         };
     }

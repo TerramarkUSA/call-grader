@@ -36,7 +36,7 @@ class CallQueueController extends Controller
         $query = Call::where('account_id', $selectedAccount->id)
             ->whereNull('ignored_at')
             ->where('call_quality', 'pending')
-            ->with(['rep', 'project']);
+            ->with(['rep', 'project', 'grades']);
 
         // Parse date filter
         $dateFilter = $request->get('date_filter', '14');
@@ -77,6 +77,11 @@ class CallQueueController extends Controller
             $query->displayStatus($request->get('display_status'));
         }
 
+        // Filter by grading status
+        if ($request->filled('grading_status')) {
+            $query->gradingStatus($request->get('grading_status'));
+        }
+
         // Get calls - withQueryString preserves filters across pagination
         $calls = $query->orderBy('called_at', 'desc')->paginate(25)->withQueryString();
 
@@ -111,6 +116,14 @@ class CallQueueController extends Controller
             'busy' => (clone $baseStatsQuery)->displayStatus('busy')->count(),
         ];
 
+        // Grading status stats
+        $gradingStats = [
+            'needs_processing' => (clone $baseStatsQuery)->gradingStatus('needs_processing')->count(),
+            'ready' => (clone $baseStatsQuery)->gradingStatus('ready')->count(),
+            'in_progress' => (clone $baseStatsQuery)->gradingStatus('in_progress')->count(),
+            'graded' => (clone $baseStatsQuery)->gradingStatus('graded')->count(),
+        ];
+
         // Summary stats - within the selected date range
         $summaryStats = [
             'avg_duration' => (int) ((clone $baseStatsQuery)
@@ -124,6 +137,9 @@ class CallQueueController extends Controller
         // Display status options for filter
         $displayStatuses = Call::DISPLAY_STATUSES;
 
+        // Grading status options for filter
+        $gradingStatuses = Call::GRADING_STATUSES;
+
         return view('manager.calls.index', compact(
             'accounts',
             'selectedAccount',
@@ -131,9 +147,11 @@ class CallQueueController extends Controller
             'reps',
             'projects',
             'stats',
+            'gradingStats',
             'summaryStats',
             'showingSearch',
             'displayStatuses',
+            'gradingStatuses',
             'dateFilter',
             'dateRangeLabel',
             'startDate',
