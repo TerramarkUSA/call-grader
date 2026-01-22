@@ -158,43 +158,6 @@
             @endif
         </div>
 
-        <!-- Office Mapping -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Office Mapping</h3>
-            <p class="text-sm text-gray-500 mb-4">Map your offices to the Salesforce office field value</p>
-            <form method="POST" action="{{ route('admin.salesforce.office-mapping') }}">
-                @csrf
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-100">
-                            <th class="text-left py-2 text-gray-500 font-medium">Office</th>
-                            <th class="text-left py-2 text-gray-500 font-medium">SF Office Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($accounts as $index => $account)
-                            <tr class="border-b border-gray-50">
-                                <td class="py-3">{{ $account->name }}</td>
-                                <td class="py-3">
-                                    <input type="hidden" name="mappings[{{ $index }}][account_id]" value="{{ $account->id }}">
-                                    <input
-                                        type="text"
-                                        name="mappings[{{ $index }}][sf_office_name]"
-                                        value="{{ $account->sf_office_name }}"
-                                        placeholder="e.g., Dallas"
-                                        class="border border-gray-200 rounded-lg px-2 py-1 text-sm w-full"
-                                    >
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-                    Save Office Mapping
-                </button>
-            </form>
-        </div>
-
         <!-- Rep Mapping -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">

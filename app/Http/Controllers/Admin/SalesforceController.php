@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Account;
 use App\Models\Rep;
 use App\Models\Project;
 use App\Models\Setting;
@@ -25,10 +24,7 @@ class SalesforceController extends Controller
         // Field mapping
         $fieldMapping = $service->getFieldMapping();
 
-        // Accounts for office mapping
-        $accounts = Account::where('is_active', true)
-            ->get(['id', 'name', 'sf_office_name']);
-
+        // Reps and projects for legacy mapping
         $reps = Rep::with('account:id,name')
             ->where('is_active', true)
             ->get(['id', 'name', 'email', 'account_id', 'sf_user_id']);
@@ -43,7 +39,6 @@ class SalesforceController extends Controller
             'sfClientId',
             'sfConnectedAt',
             'fieldMapping',
-            'accounts',
             'reps',
             'projects'
         ));
@@ -215,21 +210,5 @@ class SalesforceController extends Controller
         }
 
         return back()->with('success', 'Project mapping saved.');
-    }
-
-    public function saveOfficeMapping(Request $request)
-    {
-        $validated = $request->validate([
-            'mappings' => 'required|array',
-            'mappings.*.account_id' => 'required|exists:accounts,id',
-            'mappings.*.sf_office_name' => 'nullable|string|max:255',
-        ]);
-
-        foreach ($validated['mappings'] as $mapping) {
-            Account::where('id', $mapping['account_id'])
-                ->update(['sf_office_name' => $mapping['sf_office_name'] ?: null]);
-        }
-
-        return back()->with('success', 'Office mapping saved.');
     }
 }

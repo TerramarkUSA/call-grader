@@ -28,7 +28,9 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
     Route::put('/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update');
     Route::post('/accounts/{account}/test-connection', [AccountController::class, 'testConnection'])->name('accounts.test-connection');
     Route::post('/accounts/{account}/sync-calls', [AccountController::class, 'syncCalls'])->name('accounts.sync-calls');
+    Route::post('/accounts/{account}/sync-salesforce', [AccountController::class, 'syncSalesforce'])->name('accounts.sync-salesforce');
     Route::post('/accounts/{account}/toggle-active', [AccountController::class, 'toggleActive'])->name('accounts.toggle-active');
+    Route::post('/accounts/office-mappings', [AccountController::class, 'saveOfficeMappings'])->name('accounts.office-mappings');
 
     // User Management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -104,7 +106,6 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
             Route::post('/auto-match-reps', [SalesforceController::class, 'autoMatchReps'])->name('auto-match-reps');
             Route::post('/rep-mapping', [SalesforceController::class, 'saveRepMapping'])->name('rep-mapping');
             Route::post('/project-mapping', [SalesforceController::class, 'saveProjectMapping'])->name('project-mapping');
-            Route::post('/office-mapping', [SalesforceController::class, 'saveOfficeMapping'])->name('office-mapping');
         });
     });
 

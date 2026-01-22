@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Call;
+use App\Jobs\EnrichCallFromSalesforce;
 use App\Services\CTMService;
 use App\Services\CallSyncService;
+use App\Services\SalesforceService;
 use Illuminate\Http\Request;
 
 class AccountController extends Controller
@@ -19,7 +22,21 @@ class AccountController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.accounts.index', compact('accounts'));
+        // Add SF stats to each account
+        $sfService = new SalesforceService();
+        $sfConnected = $sfService->isConnected();
+
+        foreach ($accounts as $account) {
+            $account->sf_enriched_count = Call::where('account_id', $account->id)
+                ->whereNotNull('sf_chance_id')
+                ->count();
+            $account->sf_pending_count = Call::where('account_id', $account->id)
+                ->whereNull('sf_chance_id')
+                ->whereNotNull('ctm_activity_id')
+                ->count();
+        }
+
+        return view('admin.accounts.index', compact('accounts', 'sfConnected'));
     }
 
     /**
@@ -145,5 +162,51 @@ class AccountController extends Controller
 
         $status = $account->is_active ? 'activated' : 'deactivated';
         return back()->with('success', "Office '{$account->name}' has been {$status}.");
+    }
+
+    /**
+     * Sync calls with Salesforce for an account
+     */
+    public function syncSalesforce(Account $account)
+    {
+        $sfService = new SalesforceService();
+
+        if (!$sfService->isConnected()) {
+            return back()->with('error', 'Salesforce is not connected. Please configure in Settings.');
+        }
+
+        $calls = Call::where('account_id', $account->id)
+            ->whereNull('sf_chance_id')
+            ->whereNotNull('ctm_activity_id')
+            ->get();
+
+        if ($calls->isEmpty()) {
+            return back()->with('info', "No pending calls to enrich for {$account->name}.");
+        }
+
+        foreach ($calls as $call) {
+            EnrichCallFromSalesforce::dispatch($call);
+        }
+
+        return back()->with('success', "Queued {$calls->count()} calls for Salesforce enrichment.");
+    }
+
+    /**
+     * Save SF office mapping for all accounts
+     */
+    public function saveOfficeMappings(Request $request)
+    {
+        $validated = $request->validate([
+            'mappings' => 'required|array',
+            'mappings.*.account_id' => 'required|exists:accounts,id',
+            'mappings.*.sf_office_name' => 'nullable|string|max:255',
+        ]);
+
+        foreach ($validated['mappings'] as $mapping) {
+            Account::where('id', $mapping['account_id'])
+                ->update(['sf_office_name' => $mapping['sf_office_name'] ?: null]);
+        }
+
+        return back()->with('success', 'Office mappings saved.');
     }
 }
