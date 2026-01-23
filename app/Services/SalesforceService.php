@@ -158,7 +158,7 @@ class SalesforceService
 
         $soql = "SELECT Id, Lead__c, OwnerId,
                  {$mapping['project_field']},
-                 {$mapping['land_sale_field']},
+                 {$mapping['land_sale_field']}, Land_Sale__r.Name,
                  {$mapping['contact_status_field']},
                  {$mapping['appointment_made_field']},
                  {$mapping['toured_property_field']},
@@ -280,7 +280,7 @@ class SalesforceService
         $ctmIdField = $mapping['ctm_call_id_field'] ?? 'CTM_Call_ID__c';
 
         // Build field list for query
-        $fields = ['Id', 'Lead__c', 'OwnerId', $ctmIdField];
+        $fields = ['Id', 'Lead__c', 'OwnerId', $ctmIdField, 'Land_Sale__r.Name'];
         
         $optionalFields = [
             'project_field', 'land_sale_field', 'contact_status_field',
@@ -331,7 +331,7 @@ class SalesforceService
                     'sf_lead_id' => $chance['Lead__c'] ?? null,
                     'sf_owner_id' => $chance['OwnerId'] ?? null,
                     'sf_project' => $chance[$mapping['project_field']] ?? null,
-                    'sf_land_sale' => $chance[$mapping['land_sale_field']] ?? null,
+                    'sf_land_sale' => $chance['Land_Sale__r']['Name'] ?? null,
                     'sf_contact_status' => $chance[$mapping['contact_status_field']] ?? null,
                     'sf_appointment_made' => $chance[$mapping['appointment_made_field']] ?? null,
                     'sf_toured_property' => $chance[$mapping['toured_property_field']] ?? null,
@@ -491,7 +491,7 @@ class SalesforceService
             'sf_lead_id' => $chance['Lead__c'] ?? null,
             'sf_owner_id' => $chance['OwnerId'] ?? null,
             'sf_project' => $chance[$mapping['project_field']] ?? null,
-            'sf_land_sale' => $chance[$mapping['land_sale_field']] ?? null,
+            'sf_land_sale' => $chance['Land_Sale__r']['Name'] ?? null,
             'sf_contact_status' => $chance[$mapping['contact_status_field']] ?? null,
             'sf_appointment_made' => $chance[$mapping['appointment_made_field']] ?? null,
             'sf_toured_property' => $chance[$mapping['toured_property_field']] ?? null,
