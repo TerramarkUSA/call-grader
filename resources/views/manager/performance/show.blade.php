@@ -119,41 +119,54 @@
             </form>
         </div>
 
-        <!-- Summary Cards with Office Comparison -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <!-- Funnel Stats (from ALL calls) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="text-sm text-gray-500 mb-1">Calls Graded</div>
-                <div class="text-2xl font-semibold text-gray-900">{{ $summary['calls_graded'] }}</div>
+                <div class="text-sm text-gray-500 mb-1">Total Calls</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ number_format($repCallOutcomes['total_calls']) }}</div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="text-sm text-gray-500 mb-1">Avg Score</div>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-2xl font-semibold {{ $summary['avg_score'] >= 75 ? 'text-green-600' : ($summary['avg_score'] >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                <div class="text-sm text-gray-500 mb-1">Appt Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $repCallOutcomes['appt_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($repCallOutcomes['appointments']) }} appointments</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Show Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $repCallOutcomes['show_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($repCallOutcomes['shows']) }} shows</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Sale Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $repCallOutcomes['sale_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($repCallOutcomes['sales']) }} sales</div>
+            </div>
+        </div>
+
+        <!-- Secondary Grading Stats -->
+        <div class="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">Graded:</span>
+                    <span class="font-medium text-gray-900">{{ $summary['calls_graded'] }} calls</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">Avg Score:</span>
+                    <span class="font-medium {{ $summary['avg_score'] >= 75 ? 'text-green-600' : ($summary['avg_score'] >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
                         {{ $summary['avg_score'] }}%
                     </span>
                     <span class="text-xs {{ $summary['score_diff'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $summary['score_diff'] >= 0 ? '+' : '' }}{{ $summary['score_diff'] }} vs office
+                        ({{ $summary['score_diff'] >= 0 ? '+' : '' }}{{ $summary['score_diff'] }} vs office)
                     </span>
                 </div>
-                <div class="text-xs text-gray-400 mt-1">Office avg: {{ $summary['office_avg_score'] }}%</div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="text-sm text-gray-500 mb-1">Appointment Rate</div>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-2xl font-semibold text-gray-900">{{ $summary['appt_rate'] }}%</span>
-                    <span class="text-xs {{ $summary['appt_diff'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $summary['appt_diff'] >= 0 ? '+' : '' }}{{ $summary['appt_diff'] }} vs office
-                    </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">Appt Quality:</span>
+                    <span class="font-medium text-gray-900">{{ $summary['solid_count'] }} solid / {{ $summary['solid_count'] + $summary['tentative_count'] }} total</span>
                 </div>
-                <div class="text-xs text-gray-400 mt-1">{{ $summary['solid_count'] }} solid / {{ $summary['solid_count'] + $summary['tentative_count'] }} total</div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="text-sm text-gray-500 mb-1">Unshared Feedback</div>
-                <div class="text-2xl font-semibold {{ $summary['unshared_count'] > 0 ? 'text-orange-600' : 'text-gray-900' }}">
-                    {{ $summary['unshared_count'] }}
-                </div>
-                @if($summary['unshared_count'] > 0 && !$rep->email)
-                    <div class="text-xs text-red-500 mt-1">No email configured</div>
+                @if($summary['unshared_count'] > 0)
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Unshared:</span>
+                        <span class="font-medium text-orange-600">{{ $summary['unshared_count'] }}</span>
+                    </div>
                 @endif
             </div>
         </div>

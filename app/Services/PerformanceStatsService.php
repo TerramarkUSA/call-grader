@@ -352,6 +352,7 @@ class PerformanceStatsService
 
     /**
      * Get call outcomes (funnel stats) from ALL calls (not just graded)
+     * All rates use total_calls as denominator for consistent cross-rep comparison
      */
     public function getCallOutcomes(int $accountId, Carbon $startDate, Carbon $endDate): array
     {
@@ -369,13 +370,14 @@ class PerformanceStatsService
             'shows' => $shows,
             'sales' => $sales,
             'appt_rate' => $totalCalls > 0 ? round(($appointments / $totalCalls) * 100, 1) : 0,
-            'show_rate' => $appointments > 0 ? round(($shows / $appointments) * 100, 1) : 0,
-            'sale_rate' => $appointments > 0 ? round(($sales / $appointments) * 100, 1) : 0,
+            'show_rate' => $totalCalls > 0 ? round(($shows / $totalCalls) * 100, 1) : 0,
+            'sale_rate' => $totalCalls > 0 ? round(($sales / $totalCalls) * 100, 1) : 0,
         ];
     }
 
     /**
      * Get call outcomes (funnel stats) for a specific rep from ALL calls
+     * All rates use total_calls as denominator for consistent cross-rep comparison
      */
     public function getRepCallOutcomes(int $repId, Carbon $startDate, Carbon $endDate): array
     {
@@ -393,8 +395,8 @@ class PerformanceStatsService
             'shows' => $shows,
             'sales' => $sales,
             'appt_rate' => $totalCalls > 0 ? round(($appointments / $totalCalls) * 100, 1) : 0,
-            'show_rate' => $appointments > 0 ? round(($shows / $appointments) * 100, 1) : 0,
-            'sale_rate' => $appointments > 0 ? round(($sales / $appointments) * 100, 1) : 0,
+            'show_rate' => $totalCalls > 0 ? round(($shows / $totalCalls) * 100, 1) : 0,
+            'sale_rate' => $totalCalls > 0 ? round(($sales / $totalCalls) * 100, 1) : 0,
         ];
     }
 

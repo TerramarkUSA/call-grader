@@ -35,13 +35,9 @@ class PerformanceController extends Controller
             return view('manager.calls.no-account');
         }
 
-        // Get selected account (persist selection in session)
-        $defaultAccountId = session('manager_account_id', $accounts->first()->id);
-        $selectedAccountId = $request->get('account_id', $defaultAccountId);
+        // Get selected account
+        $selectedAccountId = $request->get('account_id', $accounts->first()->id);
         $selectedAccount = $accounts->find($selectedAccountId) ?? $accounts->first();
-
-        // Store selection in session for cross-page persistence
-        session(['manager_account_id' => $selectedAccount->id]);
 
         // Parse date range
         $dateFilter = $request->get('date_filter', '30');
@@ -49,13 +45,13 @@ class PerformanceController extends Controller
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
 
-        // Get all stats
+        // Get grading stats (from graded calls only)
         $summary = $this->statsService->getOfficeSummary($selectedAccount->id, $startDate, $endDate);
         $categoryAverages = $this->statsService->getOfficeCategoryAverages($selectedAccount->id, $startDate, $endDate);
         $scoreTrend = $this->statsService->getOfficeScoreTrend($selectedAccount->id, $startDate, $endDate);
         $repComparison = $this->statsService->getRepComparison($selectedAccount->id, $startDate, $endDate);
 
-        // Get call outcomes funnel stats (from ALL calls, not just graded)
+        // Get funnel stats (from ALL calls)
         $callOutcomes = $this->statsService->getCallOutcomes($selectedAccount->id, $startDate, $endDate);
 
         // Get categories for table headers
@@ -72,11 +68,11 @@ class PerformanceController extends Controller
             'startDate',
             'endDate',
             'summary',
+            'callOutcomes',
             'categoryAverages',
             'scoreTrend',
             'repComparison',
-            'categories',
-            'callOutcomes'
+            'categories'
         ));
     }
 
@@ -99,11 +95,14 @@ class PerformanceController extends Controller
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
 
-        // Get rep stats
+        // Get grading stats (from graded calls only)
         $summary = $this->statsService->getRepSummary($rep->id, $account->id, $startDate, $endDate);
         $categoryAverages = $this->statsService->getRepCategoryAverages($rep->id, $account->id, $startDate, $endDate);
         $scoreTrend = $this->statsService->getRepScoreTrend($rep->id, $account->id, $startDate, $endDate);
         $recentCalls = $this->statsService->getRepRecentCalls($rep->id, 15);
+
+        // Get funnel stats (from ALL calls)
+        $repCallOutcomes = $this->statsService->getRepCallOutcomes($rep->id, $startDate, $endDate);
 
         // Date range label
         $dateRangeLabel = $this->getDateRangeLabel($dateFilter, $startDate, $endDate);
@@ -116,6 +115,7 @@ class PerformanceController extends Controller
             'startDate',
             'endDate',
             'summary',
+            'repCallOutcomes',
             'categoryAverages',
             'scoreTrend',
             'recentCalls'

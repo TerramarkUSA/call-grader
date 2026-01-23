@@ -89,7 +89,36 @@
             </form>
         </div>
 
-        <!-- Summary Cards -->
+        <!-- Funnel Stats (from ALL calls) -->
+        <div class="mb-2">
+            <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Call Outcomes</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Total Calls</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ number_format($callOutcomes['total_calls']) }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Appt Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $callOutcomes['appt_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($callOutcomes['appointments']) }} appointments</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Show Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $callOutcomes['show_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($callOutcomes['shows']) }} shows</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="text-sm text-gray-500 mb-1">Sale Rate</div>
+                <div class="text-2xl font-semibold text-gray-900">{{ $callOutcomes['sale_rate'] }}%</div>
+                <div class="text-xs text-gray-400 mt-1">{{ number_format($callOutcomes['sales']) }} sales</div>
+            </div>
+        </div>
+
+        <!-- Grading Stats (from graded calls only) -->
+        <div class="mb-2">
+            <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Grading Performance</h3>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <div class="text-sm text-gray-500 mb-1">Calls Graded</div>
