@@ -295,10 +295,13 @@ class SalesforceService
 
         $fieldList = implode(', ', array_unique($fields));
 
+        // Calculate datetime for hours ago (LAST_N_HOURS is not valid SOQL)
+        $since = now()->subHours($hours)->format('Y-m-d\TH:i:s\Z');
+
         // Query for Chances with CTM Call ID in the time range
         $soql = "SELECT {$fieldList} FROM {$objectName} 
                  WHERE {$ctmIdField} != null 
-                 AND CreatedDate >= LAST_N_HOURS:{$hours}
+                 AND CreatedDate >= {$since}
                  ORDER BY CreatedDate DESC
                  LIMIT 2000";
 
