@@ -178,6 +178,264 @@ class SalesforceService
         return $results['records'] ?? [];
     }
 
+    // ==================
+    // Schema Discovery Methods
+    // ==================
+
+    /**
+     * Get list of Salesforce objects (custom and standard)
+     */
+    public function getObjects(): array
+    {
+        $token = $this->getAccessToken();
+        if (!$token) {
+            return [];
+        }
+
+        $instanceUrl = Setting::get('sf_instance_url');
+
+        $response = Http::withToken($token)
+            ->get($instanceUrl . '/services/data/v59.0/sobjects/');
+
+        if (!$response->successful()) {
+            Log::error('Salesforce getObjects failed', ['response' => $response->body()]);
+            return [];
+        }
+
+        $data = $response->json();
+        $objects = [];
+
+        foreach ($data['sobjects'] ?? [] as $obj) {
+            // Include custom objects and commonly used standard objects
+            if ($obj['custom'] || in_array($obj['name'], ['Lead', 'Contact', 'Account', 'Opportunity', 'Case', 'Task', 'Event'])) {
+                $objects[] = [
+                    'name' => $obj['name'],
+                    'label' => $obj['label'],
+                    'custom' => $obj['custom'],
+                ];
+            }
+        }
+
+        // Sort by label
+        usort($objects, fn($a, $b) => strcmp($a['label'], $b['label']));
+
+        return $objects;
+    }
+
+    /**
+     * Get fields for a specific Salesforce object
+     */
+    public function getObjectFields(string $objectName): array
+    {
+        $token = $this->getAccessToken();
+        if (!$token) {
+            return [];
+        }
+
+        $instanceUrl = Setting::get('sf_instance_url');
+
+        $response = Http::withToken($token)
+            ->get($instanceUrl . "/services/data/v59.0/sobjects/{$objectName}/describe");
+
+        if (!$response->successful()) {
+            Log::error('Salesforce getObjectFields failed', [
+                'object' => $objectName,
+                'response' => $response->body()
+            ]);
+            return [];
+        }
+
+        $data = $response->json();
+        $fields = [];
+
+        foreach ($data['fields'] ?? [] as $field) {
+            $fields[] = [
+                'name' => $field['name'],
+                'label' => $field['label'],
+                'type' => $field['type'],
+            ];
+        }
+
+        // Sort by label
+        usort($fields, fn($a, $b) => strcmp($a['label'], $b['label']));
+
+        return $fields;
+    }
+
+    // ==================
+    // Batch Sync Methods
+    // ==================
+
+    /**
+     * Sync Chances from Salesforce by time range
+     */
+    public function syncChancesByTimeRange(int $hours): array
+    {
+        if (!$this->isConnected()) {
+            return ['success' => false, 'message' => 'Salesforce not connected', 'matched' => 0, 'not_found' => 0];
+        }
+
+        $mapping = $this->getFieldMapping();
+        $objectName = $mapping['chance_object'] ?? 'Chance__c';
+        $ctmIdField = $mapping['ctm_call_id_field'] ?? 'CTM_Call_ID__c';
+
+        // Build field list for query
+        $fields = ['Id', 'Lead__c', 'OwnerId', $ctmIdField];
+        
+        $optionalFields = [
+            'project_field', 'land_sale_field', 'contact_status_field',
+            'appointment_made_field', 'toured_property_field', 'opportunity_created_field'
+        ];
+        
+        foreach ($optionalFields as $key) {
+            if (!empty($mapping[$key])) {
+                $fields[] = $mapping[$key];
+            }
+        }
+
+        $fieldList = implode(', ', array_unique($fields));
+
+        // Query for Chances with CTM Call ID in the time range
+        $soql = "SELECT {$fieldList} FROM {$objectName} 
+                 WHERE {$ctmIdField} != null 
+                 AND CreatedDate >= LAST_N_HOURS:{$hours}
+                 ORDER BY CreatedDate DESC
+                 LIMIT 2000";
+
+        $results = $this->query($soql);
+
+        if ($results === null) {
+            return ['success' => false, 'message' => 'Query failed', 'matched' => 0, 'not_found' => 0];
+        }
+
+        $chances = $results['records'] ?? [];
+        $matched = 0;
+        $notFound = 0;
+
+        foreach ($chances as $chance) {
+            $ctmCallId = $chance[$ctmIdField] ?? null;
+            if (!$ctmCallId) {
+                continue;
+            }
+
+            // Find matching call
+            $call = Call::where('ctm_activity_id', $ctmCallId)->first();
+
+            if ($call) {
+                // Update call with SF data
+                $call->update([
+                    'sf_chance_id' => $chance['Id'],
+                    'sf_lead_id' => $chance['Lead__c'] ?? null,
+                    'sf_owner_id' => $chance['OwnerId'] ?? null,
+                    'sf_project' => $chance[$mapping['project_field']] ?? null,
+                    'sf_land_sale' => $chance[$mapping['land_sale_field']] ?? null,
+                    'sf_contact_status' => $chance[$mapping['contact_status_field']] ?? null,
+                    'sf_appointment_made' => $chance[$mapping['appointment_made_field']] ?? null,
+                    'sf_toured_property' => $chance[$mapping['toured_property_field']] ?? null,
+                    'sf_opportunity_created' => $chance[$mapping['opportunity_created_field']] ?? null,
+                    'sf_synced_at' => now(),
+                ]);
+
+                // Auto-match rep
+                $this->autoMatchRep($call, $chance);
+
+                // Auto-match project
+                $this->autoMatchProject($call, $chance, $mapping);
+
+                $matched++;
+            } else {
+                $notFound++;
+            }
+        }
+
+        // Update last sync time
+        Setting::set('sf_last_sync_at', now()->toIso8601String());
+
+        Log::info('Salesforce batch sync completed', [
+            'hours' => $hours,
+            'total_chances' => count($chances),
+            'matched' => $matched,
+            'not_found' => $notFound,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => "Synced {$matched} calls from Salesforce",
+            'matched' => $matched,
+            'not_found' => $notFound,
+            'total_chances' => count($chances),
+        ];
+    }
+
+    /**
+     * Auto-match rep from Chance owner
+     */
+    protected function autoMatchRep(Call $call, array $chance): void
+    {
+        if (empty($chance['OwnerId']) || $call->rep_id) {
+            return;
+        }
+
+        $rep = Rep::where('sf_user_id', $chance['OwnerId'])
+                  ->where('account_id', $call->account_id)
+                  ->first();
+
+        if ($rep) {
+            $call->update(['rep_id' => $rep->id]);
+            return;
+        }
+
+        // Auto-create Rep from Salesforce User
+        $escapedOwnerId = str_replace("'", "\\'", $chance['OwnerId']);
+        $soql = "SELECT Id, Name, Email FROM User WHERE Id = '{$escapedOwnerId}' LIMIT 1";
+        $results = $this->query($soql);
+        $sfUser = $results['records'][0] ?? null;
+
+        if ($sfUser) {
+            $rep = Rep::create([
+                'account_id' => $call->account_id,
+                'name' => $sfUser['Name'],
+                'email' => $sfUser['Email'] ?? null,
+                'sf_user_id' => $sfUser['Id'],
+                'is_active' => true,
+            ]);
+
+            Log::info('Auto-created Rep from SF sync', ['name' => $rep->name, 'sf_id' => $sfUser['Id']]);
+            $call->update(['rep_id' => $rep->id]);
+        }
+    }
+
+    /**
+     * Auto-match project from Chance data
+     */
+    protected function autoMatchProject(Call $call, array $chance, array $mapping): void
+    {
+        $sfProject = $chance[$mapping['project_field']] ?? null;
+        if (!$sfProject || $call->project_id) {
+            return;
+        }
+
+        $project = Project::where('sf_project_name', $sfProject)
+                          ->where('account_id', $call->account_id)
+                          ->first();
+
+        if ($project) {
+            $call->update(['project_id' => $project->id]);
+            return;
+        }
+
+        // Auto-create Project
+        $project = Project::create([
+            'account_id' => $call->account_id,
+            'name' => $sfProject,
+            'sf_project_name' => $sfProject,
+            'is_active' => true,
+        ]);
+
+        Log::info('Auto-created Project from SF sync', ['name' => $project->name]);
+        $call->update(['project_id' => $project->id]);
+    }
+
     public function getFieldMapping(): array
     {
         $defaults = [

@@ -101,11 +101,11 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
             Route::get('/callback', [SalesforceController::class, 'callback'])->name('callback');
             Route::post('/disconnect', [SalesforceController::class, 'disconnect'])->name('disconnect');
             Route::post('/test', [SalesforceController::class, 'testConnection'])->name('test');
+            Route::get('/objects', [SalesforceController::class, 'getObjects'])->name('objects');
+            Route::get('/fields', [SalesforceController::class, 'getObjectFields'])->name('fields');
             Route::post('/field-mapping', [SalesforceController::class, 'saveFieldMapping'])->name('field-mapping');
+            Route::post('/sync', [SalesforceController::class, 'syncChances'])->name('sync');
             Route::get('/users', [SalesforceController::class, 'getUsers'])->name('users');
-            Route::post('/auto-match-reps', [SalesforceController::class, 'autoMatchReps'])->name('auto-match-reps');
-            Route::post('/rep-mapping', [SalesforceController::class, 'saveRepMapping'])->name('rep-mapping');
-            Route::post('/project-mapping', [SalesforceController::class, 'saveProjectMapping'])->name('project-mapping');
         });
     });
 
