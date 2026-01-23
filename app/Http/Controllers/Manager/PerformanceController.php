@@ -35,9 +35,13 @@ class PerformanceController extends Controller
             return view('manager.calls.no-account');
         }
 
-        // Get selected account
-        $selectedAccountId = $request->get('account_id', $accounts->first()->id);
+        // Get selected account (persist selection in session)
+        $defaultAccountId = session('manager_account_id', $accounts->first()->id);
+        $selectedAccountId = $request->get('account_id', $defaultAccountId);
         $selectedAccount = $accounts->find($selectedAccountId) ?? $accounts->first();
+
+        // Store selection in session for cross-page persistence
+        session(['manager_account_id' => $selectedAccount->id]);
 
         // Parse date range
         $dateFilter = $request->get('date_filter', '30');
@@ -50,6 +54,9 @@ class PerformanceController extends Controller
         $categoryAverages = $this->statsService->getOfficeCategoryAverages($selectedAccount->id, $startDate, $endDate);
         $scoreTrend = $this->statsService->getOfficeScoreTrend($selectedAccount->id, $startDate, $endDate);
         $repComparison = $this->statsService->getRepComparison($selectedAccount->id, $startDate, $endDate);
+
+        // Get call outcomes funnel stats (from ALL calls, not just graded)
+        $callOutcomes = $this->statsService->getCallOutcomes($selectedAccount->id, $startDate, $endDate);
 
         // Get categories for table headers
         $categories = RubricCategory::where('is_active', true)->orderBy('sort_order')->get();
@@ -68,7 +75,8 @@ class PerformanceController extends Controller
             'categoryAverages',
             'scoreTrend',
             'repComparison',
-            'categories'
+            'categories',
+            'callOutcomes'
         ));
     }
 

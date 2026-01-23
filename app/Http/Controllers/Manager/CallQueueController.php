@@ -28,9 +28,13 @@ class CallQueueController extends Controller
             return view('manager.calls.no-account');
         }
 
-        // Get selected account (default to first)
-        $selectedAccountId = $request->get('account_id', $accounts->first()->id);
+        // Get selected account (persist selection in session)
+        $defaultAccountId = session('manager_account_id', $accounts->first()->id);
+        $selectedAccountId = $request->get('account_id', $defaultAccountId);
         $selectedAccount = $accounts->find($selectedAccountId) ?? $accounts->first();
+
+        // Store selection in session for cross-page persistence
+        session(['manager_account_id' => $selectedAccount->id]);
 
         // Build query
         $query = Call::where('account_id', $selectedAccount->id)

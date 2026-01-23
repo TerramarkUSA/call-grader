@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\Call;
 use App\Models\Grade;
 use App\Models\GradeCategoryScore;
 use App\Models\Rep;
@@ -347,6 +348,54 @@ class PerformanceStatsService
                     'graded_at' => $grade->grading_completed_at,
                 ];
             });
+    }
+
+    /**
+     * Get call outcomes (funnel stats) from ALL calls (not just graded)
+     */
+    public function getCallOutcomes(int $accountId, Carbon $startDate, Carbon $endDate): array
+    {
+        $query = Call::where('account_id', $accountId)
+            ->whereBetween('called_at', [$startDate, $endDate]);
+
+        $totalCalls = (clone $query)->count();
+        $appointments = (clone $query)->where('sf_appointment_made', true)->count();
+        $shows = (clone $query)->where('sf_toured_property', true)->count();
+        $sales = (clone $query)->whereNotNull('sf_land_sale')->count();
+
+        return [
+            'total_calls' => $totalCalls,
+            'appointments' => $appointments,
+            'shows' => $shows,
+            'sales' => $sales,
+            'appt_rate' => $totalCalls > 0 ? round(($appointments / $totalCalls) * 100, 1) : 0,
+            'show_rate' => $appointments > 0 ? round(($shows / $appointments) * 100, 1) : 0,
+            'sale_rate' => $appointments > 0 ? round(($sales / $appointments) * 100, 1) : 0,
+        ];
+    }
+
+    /**
+     * Get call outcomes (funnel stats) for a specific rep from ALL calls
+     */
+    public function getRepCallOutcomes(int $repId, Carbon $startDate, Carbon $endDate): array
+    {
+        $query = Call::where('rep_id', $repId)
+            ->whereBetween('called_at', [$startDate, $endDate]);
+
+        $totalCalls = (clone $query)->count();
+        $appointments = (clone $query)->where('sf_appointment_made', true)->count();
+        $shows = (clone $query)->where('sf_toured_property', true)->count();
+        $sales = (clone $query)->whereNotNull('sf_land_sale')->count();
+
+        return [
+            'total_calls' => $totalCalls,
+            'appointments' => $appointments,
+            'shows' => $shows,
+            'sales' => $sales,
+            'appt_rate' => $totalCalls > 0 ? round(($appointments / $totalCalls) * 100, 1) : 0,
+            'show_rate' => $appointments > 0 ? round(($shows / $appointments) * 100, 1) : 0,
+            'sale_rate' => $appointments > 0 ? round(($sales / $appointments) * 100, 1) : 0,
+        ];
     }
 
     /**
