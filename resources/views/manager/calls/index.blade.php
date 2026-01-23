@@ -313,8 +313,8 @@
         </div>
 
         <!-- Calls Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table class="min-w-full">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+            <table class="min-w-full whitespace-nowrap">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-200">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Date/Time</th>
@@ -368,7 +368,11 @@
                             </td>
                             <!-- Land Sale -->
                             <td class="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">
-                                {{ $call->sf_land_sale ?? '—' }}
+                                @if($call->sf_land_sale)
+                                    <span title="{{ $call->sf_land_sale }}" class="max-w-[120px] truncate inline-block">{{ $call->sf_land_sale }}</span>
+                                @else
+                                    <span>—</span>
+                                @endif
                             </td>
                             <!-- Appointment -->
                             <td class="px-4 py-4 text-center whitespace-nowrap">
