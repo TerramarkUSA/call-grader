@@ -8,6 +8,7 @@ use App\Http\Controllers\Manager\GradedCallsController;
 use App\Http\Controllers\Manager\GradingController;
 use App\Http\Controllers\Manager\NotesLibraryController;
 use App\Http\Controllers\Manager\ObjectionsLibraryController;
+use App\Http\Controllers\Manager\PerformanceController;
 use App\Http\Controllers\Manager\ReportsController;
 use App\Http\Controllers\Manager\TranscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,11 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::get('/reports/grading-activity', [ReportsController::class, 'gradingActivity'])->name('reports.grading-activity');
     Route::get('/reports/call-analytics', [CallAnalyticsController::class, 'index'])->name('reports.call-analytics');
     Route::get('/reports/call-analytics/export', [CallAnalyticsController::class, 'export'])->name('reports.call-analytics.export');
+
+    // Performance Dashboard
+    Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
+    Route::get('/performance/{rep}', [PerformanceController::class, 'show'])->name('performance.show');
+    Route::post('/performance/{rep}/share-all', [PerformanceController::class, 'shareAll'])->name('performance.share-all');
 
     // Call Queue
     Route::get('/calls', [CallQueueController::class, 'index'])->name('calls.index');

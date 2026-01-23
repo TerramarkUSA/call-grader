@@ -21,6 +21,16 @@
                     </a>
 
                     <a
+                        href="{{ route('manager.performance.index') }}"
+                        class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.performance.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
+                    >
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        Performance
+                    </a>
+
+                    <a
                         href="{{ route('manager.calls.index') }}"
                         class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.calls.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
                     >
@@ -142,6 +152,12 @@
                 class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('manager.dashboard') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900' }}"
             >
                 Dashboard
+            </a>
+            <a
+                href="{{ route('manager.performance.index') }}"
+                class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('manager.performance.*') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900' }}"
+            >
+                Performance
             </a>
             <a
                 href="{{ route('manager.calls.index') }}"
