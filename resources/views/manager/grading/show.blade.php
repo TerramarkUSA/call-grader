@@ -52,6 +52,34 @@
             text-align: center;
             text-align-last: center;
         }
+        /* Drag selection styles */
+        .utterance-selecting {
+            background-color: rgb(219, 234, 254) !important;
+            box-shadow: inset 0 0 0 2px rgb(59, 130, 246);
+        }
+        .utterance-drag-start {
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            z-index: 10;
+        }
+        .add-note-btn.dragging {
+            background-color: rgb(59, 130, 246) !important;
+            color: white !important;
+            border-color: rgb(59, 130, 246) !important;
+            opacity: 1 !important;
+        }
+        .selection-count-badge {
+            position: fixed;
+            background: rgb(59, 130, 246);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -287,7 +315,8 @@
                                 <button
                                     type="button"
                                     class="add-note-btn absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white shadow-sm border border-gray-200 rounded-full p-1.5 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-gray-400 transition-all"
-                                    title="Add note"
+                                    title="Click to add note • Drag to select multiple"
+                                    data-group-index="{{ $groupIndex }}"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -836,36 +865,150 @@
         const utterances = document.querySelectorAll('.utterance');
         let currentUtteranceIndex = -1;
 
+        // Drag-to-select state
+        let isDragging = false;
+        let dragStartIndex = null;
+        let dragCurrentIndex = null;
+        let selectionBadge = null;
+
         utterances.forEach((utterance, index) => {
             // Click utterance body → seek audio
             utterance.addEventListener('click', (e) => {
-                // Ignore if clicking the add note button
-                if (e.target.closest('.add-note-btn')) return;
+                // Ignore if clicking the add note button or during drag
+                if (e.target.closest('.add-note-btn') || isDragging) return;
                 
                 const start = parseFloat(utterance.dataset.start);
                 audio.currentTime = start;
                 audio.play();
             });
 
-            // Click (+) button → open add note modal
+            // Drag-to-select on (+) button
             const addNoteBtn = utterance.querySelector('.add-note-btn');
             if (addNoteBtn) {
-                addNoteBtn.addEventListener('click', (e) => {
+                // Mouse down → start potential drag
+                addNoteBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    const start = parseFloat(utterance.dataset.start);
-                    const end = parseFloat(utterance.dataset.end);
-                    const text = utterance.dataset.text;
-                    const indices = JSON.parse(utterance.dataset.indices || '[]');
-
-                    openAddNoteModal({
-                        lineIndexStart: indices[0] ?? 0,
-                        lineIndexEnd: indices[indices.length - 1] ?? 0,
-                        timestampStart: start,
-                        timestampEnd: end,
-                        text: text,
-                    });
+                    isDragging = true;
+                    dragStartIndex = index;
+                    dragCurrentIndex = index;
+                    
+                    // Visual feedback - lift effect
+                    utterance.classList.add('utterance-drag-start', 'utterance-selecting');
+                    addNoteBtn.classList.add('dragging');
+                    
+                    // Create selection badge
+                    selectionBadge = document.createElement('div');
+                    selectionBadge.className = 'selection-count-badge';
+                    selectionBadge.textContent = '1 snippet';
+                    document.body.appendChild(selectionBadge);
+                    updateBadgePosition(e);
                 });
             }
+
+            // Track mouse entering utterances during drag
+            utterance.addEventListener('mouseenter', () => {
+                if (isDragging && dragStartIndex !== null) {
+                    dragCurrentIndex = index;
+                    updateDragSelection();
+                }
+            });
+        });
+
+        // Update selection highlighting
+        function updateDragSelection() {
+            const minIdx = Math.min(dragStartIndex, dragCurrentIndex);
+            const maxIdx = Math.max(dragStartIndex, dragCurrentIndex);
+            const count = maxIdx - minIdx + 1;
+            
+            utterances.forEach((u, i) => {
+                if (i >= minIdx && i <= maxIdx) {
+                    u.classList.add('utterance-selecting');
+                } else {
+                    u.classList.remove('utterance-selecting');
+                }
+                // Keep drag-start effect only on start utterance
+                if (i === dragStartIndex) {
+                    u.classList.add('utterance-drag-start');
+                } else {
+                    u.classList.remove('utterance-drag-start');
+                }
+            });
+            
+            // Update badge
+            if (selectionBadge) {
+                selectionBadge.textContent = `${count} snippet${count > 1 ? 's' : ''}`;
+            }
+        }
+
+        // Update badge position near cursor
+        function updateBadgePosition(e) {
+            if (selectionBadge) {
+                selectionBadge.style.left = (e.clientX + 15) + 'px';
+                selectionBadge.style.top = (e.clientY - 10) + 'px';
+            }
+        }
+
+        // Track mouse movement for badge position
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateBadgePosition(e);
+            }
+        });
+
+        // Mouse up → end drag and open modal
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging || dragStartIndex === null) return;
+            
+            const minIdx = Math.min(dragStartIndex, dragCurrentIndex);
+            const maxIdx = Math.max(dragStartIndex, dragCurrentIndex);
+            
+            // Collect all selected utterances data
+            const selectedUtterances = [];
+            let combinedText = [];
+            let startTime = null;
+            let endTime = null;
+            let allIndices = [];
+            
+            for (let i = minIdx; i <= maxIdx; i++) {
+                const u = utterances[i];
+                const indices = JSON.parse(u.dataset.indices || '[]');
+                allIndices = allIndices.concat(indices);
+                combinedText.push(u.dataset.text);
+                
+                const uStart = parseFloat(u.dataset.start);
+                const uEnd = parseFloat(u.dataset.end);
+                
+                if (startTime === null || uStart < startTime) startTime = uStart;
+                if (endTime === null || uEnd > endTime) endTime = uEnd;
+            }
+            
+            // Clear visual states
+            utterances.forEach(u => {
+                u.classList.remove('utterance-selecting', 'utterance-drag-start');
+                const btn = u.querySelector('.add-note-btn');
+                if (btn) btn.classList.remove('dragging');
+            });
+            
+            // Remove badge
+            if (selectionBadge) {
+                selectionBadge.remove();
+                selectionBadge = null;
+            }
+            
+            // Open modal with combined data
+            openAddNoteModal({
+                lineIndexStart: allIndices[0] ?? 0,
+                lineIndexEnd: allIndices[allIndices.length - 1] ?? 0,
+                timestampStart: startTime,
+                timestampEnd: endTime,
+                text: combinedText.join(' ... '),
+            });
+            
+            // Reset drag state
+            isDragging = false;
+            dragStartIndex = null;
+            dragCurrentIndex = null;
         });
 
         function highlightCurrentUtterance(currentTime) {
