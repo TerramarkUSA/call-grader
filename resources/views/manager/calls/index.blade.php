@@ -314,20 +314,20 @@
 
         <!-- Calls Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-            <table class="min-w-full whitespace-nowrap">
+            <table class="w-full">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-200">
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Date/Time</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Caller</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Rep</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Project</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Land Sale</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Appt</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Toured</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Contract</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Duration</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Call Type</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Date/Time</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Caller</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Rep</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Project</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Land Sale</th>
+                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Appt</th>
+                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Toured</th>
+                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Contract</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Duration</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Call Type</th>
+                        <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap sticky right-0 bg-gray-50">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -344,38 +344,38 @@
                             }
                         @endphp
                         <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-3 py-3 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900">{{ $call->called_at->format('M j, Y') }}</div>
-                                <div class="text-sm text-gray-500">{{ $call->called_at->format('g:i A') }}</div>
+                                <div class="text-xs text-gray-500">{{ $call->called_at->format('g:i A') }}</div>
                             </td>
-                            <td class="px-4 py-4">
-                                <div class="font-semibold text-gray-900">{{ $call->caller_name ?? 'Unknown' }}</div>
-                                <div class="text-sm text-gray-500">{{ $formattedPhone }}</div>
+                            <td class="px-3 py-3">
+                                <div class="text-sm font-semibold text-gray-900 max-w-[140px] truncate">{{ $call->caller_name ?? 'Unknown' }}</div>
+                                <div class="text-xs text-gray-500">{{ $formattedPhone }}</div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-3 py-3 whitespace-nowrap">
                                 @if($call->rep?->name)
-                                    <span class="text-sm text-gray-700">{{ $call->rep->name }}</span>
+                                    <span class="text-sm text-gray-700 max-w-[100px] truncate inline-block" title="{{ $call->rep->name }}">{{ $call->rep->name }}</span>
                                 @else
                                     <span class="text-sm text-gray-400 italic">Unassigned</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-3 py-3 whitespace-nowrap">
                                 @if($call->project?->name)
-                                    <span class="text-sm text-gray-700">{{ $call->project->name }}</span>
+                                    <span class="text-sm text-gray-700 max-w-[100px] truncate inline-block" title="{{ $call->project->name }}">{{ $call->project->name }}</span>
                                 @else
                                     <span class="text-sm text-gray-400 italic">Unassigned</span>
                                 @endif
                             </td>
                             <!-- Land Sale -->
-                            <td class="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">
+                            <td class="px-3 py-3 text-sm text-gray-600 whitespace-nowrap">
                                 @if($call->sf_land_sale)
-                                    <span title="{{ $call->sf_land_sale }}" class="max-w-[120px] truncate inline-block">{{ $call->sf_land_sale }}</span>
+                                    <span title="{{ $call->sf_land_sale }}" class="max-w-[80px] truncate inline-block">{{ $call->sf_land_sale }}</span>
                                 @else
                                     <span>—</span>
                                 @endif
                             </td>
                             <!-- Appointment -->
-                            <td class="px-4 py-4 text-center whitespace-nowrap">
+                            <td class="px-2 py-3 text-center whitespace-nowrap">
                                 @if($call->sf_appointment_made === true)
                                     <span class="text-green-600">✓</span>
                                 @else
@@ -383,7 +383,7 @@
                                 @endif
                             </td>
                             <!-- Toured -->
-                            <td class="px-4 py-4 text-center whitespace-nowrap">
+                            <td class="px-2 py-3 text-center whitespace-nowrap">
                                 @if($call->sf_toured_property === true)
                                     <span class="text-green-600">✓</span>
                                 @else
@@ -391,18 +391,18 @@
                                 @endif
                             </td>
                             <!-- Contract -->
-                            <td class="px-4 py-4 text-center whitespace-nowrap">
+                            <td class="px-2 py-3 text-center whitespace-nowrap">
                                 @if($call->sf_opportunity_created === true)
                                     <span class="text-green-600">✓</span>
                                 @else
                                     <span class="text-gray-300">—</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-3 py-3 whitespace-nowrap">
                                 @if($call->talk_time < 30)
                                     <span class="text-sm font-medium text-red-500">
                                         {{ floor($call->talk_time / 60) }}:{{ str_pad($call->talk_time % 60, 2, '0', STR_PAD_LEFT) }}
-                                        <svg class="inline-block w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="inline-block w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     </span>
@@ -412,27 +412,27 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center justify-center min-w-[100px] px-2.5 py-1 rounded-full text-xs font-medium {{ $call->display_status_color }}">
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium {{ $call->display_status_color }}">
                                     {{ $call->display_status_label }}
                                 </span>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-3 py-3 whitespace-nowrap sticky right-0 bg-white">
                                 @php $gradingStatus = $call->grading_status; @endphp
                                 @if($gradingStatus === 'needs_processing')
-                                    <a href="{{ route('manager.calls.process', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    <a href="{{ route('manager.calls.process', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
                                         Process
                                     </a>
                                 @elseif($gradingStatus === 'ready')
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
                                         Grade
                                     </a>
                                 @elseif($gradingStatus === 'in_progress')
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-200 transition-colors">
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-200 transition-colors">
                                         In Progress
                                     </a>
                                 @else
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center min-w-[90px] py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
                                         Graded ✓
                                     </a>
                                 @endif
