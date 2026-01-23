@@ -473,11 +473,11 @@
                                                 >
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                 </svg>
-                                                <span id="training-toggle-text-{{ $category->id }}">Show details</span>
+                                                <span id="training-toggle-text-{{ $category->id }}">Training details</span>
                                             </button>
                                             <div
                                                 id="training-details-{{ $category->id }}"
-                                                class="hidden mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap"
+                                                class="hidden mt-2 pl-3 border-l-2 border-blue-300 text-sm text-gray-600 text-left"
                                             >
                                                 {{ $category->training_reference }}
                                             </div>
@@ -1348,14 +1348,26 @@
             if (detailsDiv && chevron && toggleText) {
                 const isHidden = detailsDiv.classList.contains('hidden');
                 
+                // Close all other training details first
+                document.querySelectorAll('[id^="training-details-"]').forEach(el => {
+                    if (el.id !== `training-details-${categoryId}`) {
+                        el.classList.add('hidden');
+                        const otherId = el.id.replace('training-details-', '');
+                        const otherChevron = document.getElementById(`training-chevron-${otherId}`);
+                        const otherText = document.getElementById(`training-toggle-text-${otherId}`);
+                        if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
+                        if (otherText) otherText.textContent = 'Training details';
+                    }
+                });
+                
                 if (isHidden) {
                     detailsDiv.classList.remove('hidden');
                     chevron.style.transform = 'rotate(90deg)';
-                    toggleText.textContent = 'Hide details';
+                    toggleText.textContent = 'Hide training';
                 } else {
                     detailsDiv.classList.add('hidden');
                     chevron.style.transform = 'rotate(0deg)';
-                    toggleText.textContent = 'Show details';
+                    toggleText.textContent = 'Training details';
                 }
             }
         }
