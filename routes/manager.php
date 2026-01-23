@@ -46,6 +46,8 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::post('/calls/{call}/swap-speakers', [GradingController::class, 'swapSpeakers'])->name('calls.swap-speakers');
     Route::patch('/calls/{call}/details', [GradingController::class, 'updateCallDetails'])->name('calls.update-details');
     Route::post('/calls/{call}/refresh-salesforce', [GradingController::class, 'refreshSalesforce'])->name('calls.refresh-salesforce');
+    Route::get('/calls/{call}/sharing-info', [GradingController::class, 'getSharingInfo'])->name('calls.sharing-info');
+    Route::post('/calls/{call}/share', [GradingController::class, 'shareWithRep'])->name('calls.share');
 
     // Coaching Notes (API for grading page)
     Route::get('/notes/form-data', [CoachingNoteController::class, 'formData'])->name('notes.form-data');

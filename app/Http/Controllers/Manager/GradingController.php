@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CallFeedbackMail;
 use App\Models\Call;
 use App\Models\Grade;
 use App\Models\GradeCategoryScore;
@@ -16,6 +17,7 @@ use App\Services\ScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class GradingController extends Controller
@@ -317,6 +319,111 @@ class GradingController extends Controller
         return response()->json([
             'success' => true,
             'speakers_swapped' => $call->speakers_swapped,
+        ]);
+    }
+
+    /**
+     * Get sharing information for a call's grade
+     */
+    public function getSharingInfo(Call $call)
+    {
+        $call->load(['rep', 'project']);
+
+        // Check if call has a rep
+        if (!$call->rep) {
+            return response()->json([
+                'error' => 'No rep assigned to this call.',
+            ], 400);
+        }
+
+        // Check if rep has an email
+        if (!$call->rep->email) {
+            return response()->json([
+                'error' => 'Rep does not have an email address.',
+            ], 400);
+        }
+
+        // Get the submitted grade for this call
+        $grade = Grade::where('call_id', $call->id)
+            ->where('status', 'submitted')
+            ->with(['coachingNotes', 'sharedBy'])
+            ->first();
+
+        if (!$grade) {
+            return response()->json([
+                'error' => 'No submitted grade found for this call.',
+            ], 400);
+        }
+
+        // Count coaching notes (only those with transcript snippets)
+        $noteCount = $grade->coachingNotes->filter(fn($note) => $note->line_index_start !== null)->count();
+
+        return response()->json([
+            'rep_name' => $call->rep->name,
+            'rep_email' => $call->rep->email,
+            'has_notes' => $noteCount > 0,
+            'note_count' => $noteCount,
+            'was_shared' => $grade->wasShared(),
+            'shared_at' => $grade->shared_with_rep_at?->format('M j, Y g:i A'),
+            'shared_by' => $grade->sharedBy?->name,
+        ]);
+    }
+
+    /**
+     * Share call feedback with rep via email
+     */
+    public function shareWithRep(Request $request, Call $call)
+    {
+        $call->load(['rep', 'project']);
+
+        // Validate rep exists and has email
+        if (!$call->rep) {
+            return response()->json([
+                'error' => 'No rep assigned to this call.',
+            ], 400);
+        }
+
+        if (!$call->rep->email) {
+            return response()->json([
+                'error' => 'Rep does not have an email address.',
+            ], 400);
+        }
+
+        // Get the submitted grade
+        $grade = Grade::where('call_id', $call->id)
+            ->where('status', 'submitted')
+            ->first();
+
+        if (!$grade) {
+            return response()->json([
+                'error' => 'No submitted grade found for this call.',
+            ], 400);
+        }
+
+        $manager = Auth::user();
+        $repName = $call->rep->name;
+        $repEmail = $call->rep->email;
+
+        // Send the email
+        Mail::to($repEmail)->send(new CallFeedbackMail(
+            $grade,
+            $call,
+            $manager,
+            $repName,
+            $repEmail
+        ));
+
+        // Update grade with sharing info
+        $grade->update([
+            'shared_with_rep_at' => now(),
+            'shared_with_rep_email' => $repEmail,
+            'shared_by_user_id' => $manager->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feedback sent successfully.',
+            'shared_at' => $grade->fresh()->shared_with_rep_at->format('M j, Y g:i A'),
         ]);
     }
 }

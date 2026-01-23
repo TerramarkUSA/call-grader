@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Call Review - Call Grader</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
+        [x-cloak] { display: none !important; }
         .utterance-active {
             background-color: rgb(239, 246, 255) !important;
             box-shadow: inset 0 0 0 2px rgb(59, 130, 246);
@@ -601,6 +603,11 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Share with Rep (only for submitted grades) -->
+                @if($existingGrade && $existingGrade->status === 'submitted')
+                    <x-share-with-rep-modal :call="$call" :grade="$existingGrade" />
+                @endif
             </div>
         </div>
     </div>

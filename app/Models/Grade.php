@@ -18,6 +18,9 @@ class Grade extends Model
         'grading_started_at',
         'grading_completed_at',
         'status',
+        'shared_with_rep_at',
+        'shared_with_rep_email',
+        'shared_by_user_id',
     ];
 
     protected $casts = [
@@ -25,6 +28,7 @@ class Grade extends Model
         'grading_started_at' => 'datetime',
         'grading_completed_at' => 'datetime',
         'no_appointment_reasons' => 'array',
+        'shared_with_rep_at' => 'datetime',
     ];
 
     public function call(): BelongsTo
@@ -35,6 +39,11 @@ class Grade extends Model
     public function gradedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'graded_by');
+    }
+
+    public function sharedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'shared_by_user_id');
     }
 
     public function categoryScores(): HasMany
@@ -93,5 +102,10 @@ class Grade extends Model
     public function isDraft(): bool
     {
         return $this->status === 'draft';
+    }
+
+    public function wasShared(): bool
+    {
+        return $this->shared_with_rep_at !== null;
     }
 }
