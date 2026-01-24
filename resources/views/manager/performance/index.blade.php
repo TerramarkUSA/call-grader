@@ -212,9 +212,11 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Rep</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Calls</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Appt%</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Show%</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Sale%</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Graded</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Avg Score</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Appt Rate</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Trend</th>
                             @foreach($categories as $category)
                                 <th
                                     class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide category-col hidden"
@@ -235,27 +237,15 @@
                                         <div class="text-xs text-gray-400">{{ $rep['email'] }}</div>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">{{ $rep['calls_graded'] }}</td>
-                                <td class="px-4 py-4 text-center">
-                                    <span class="text-sm font-medium {{ $rep['avg_score'] >= 75 ? 'text-green-600' : ($rep['avg_score'] >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
-                                        {{ $rep['avg_score'] }}%
-                                    </span>
-                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">{{ number_format($rep['total_calls']) }}</td>
                                 <td class="px-4 py-4 text-center text-sm text-gray-600">{{ $rep['appt_rate'] }}%</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">{{ $rep['show_rate'] }}%</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">{{ $rep['sale_rate'] }}%</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-500">{{ $rep['calls_graded'] }}</td>
                                 <td class="px-4 py-4 text-center">
-                                    @if($rep['trend_direction'] === 'up')
-                                        <span class="inline-flex items-center text-xs font-medium text-green-600">
-                                            <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-                                            </svg>
-                                            {{ $rep['trend'] }}
-                                        </span>
-                                    @elseif($rep['trend_direction'] === 'down')
-                                        <span class="inline-flex items-center text-xs font-medium text-red-600">
-                                            <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                                            </svg>
-                                            {{ abs($rep['trend']) }}
+                                    @if($rep['avg_score'] !== null)
+                                        <span class="text-sm font-medium {{ $rep['avg_score'] >= 75 ? 'text-green-600' : ($rep['avg_score'] >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                                            {{ $rep['avg_score'] }}%
                                         </span>
                                     @else
                                         <span class="text-xs text-gray-400">—</span>
@@ -279,8 +269,8 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 5 + $categories->count() }}" class="px-4 py-8 text-center text-sm text-gray-500">
-                                    No graded calls in this date range.
+                                <td colspan="{{ 7 + $categories->count() }}" class="px-4 py-8 text-center text-sm text-gray-500">
+                                    No calls in this date range.
                                 </td>
                             </tr>
                         @endforelse

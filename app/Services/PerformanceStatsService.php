@@ -129,53 +129,42 @@ class PerformanceStatsService
 
     /**
      * Get all reps with their stats for comparison table
+     * Shows ALL reps who have calls in the date range (not just graded calls)
      */
     public function getRepComparison(int $accountId, Carbon $startDate, Carbon $endDate): Collection
     {
         $categories = RubricCategory::where('is_active', true)->orderBy('sort_order')->get();
 
+        // Get reps who have ANY calls in the date range (not just graded)
         $reps = Rep::where('account_id', $accountId)
             ->where('is_active', true)
-            ->whereHas('calls.grades', function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'submitted')
-                    ->whereBetween('grading_completed_at', [$startDate, $endDate]);
+            ->whereHas('calls', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('called_at', [$startDate, $endDate]);
             })
             ->get();
 
         return $reps->map(function ($rep) use ($startDate, $endDate, $categories) {
+            // FUNNEL STATS: From ALL calls in date range
+            $callsQuery = Call::where('rep_id', $rep->id)
+                ->whereBetween('called_at', [$startDate, $endDate]);
+
+            $totalCalls = (clone $callsQuery)->count();
+            $appointments = (clone $callsQuery)->where('sf_appointment_made', true)->count();
+            $shows = (clone $callsQuery)->where('sf_toured_property', true)->count();
+            $sales = (clone $callsQuery)->whereNotNull('sf_land_sale')->count();
+
+            // GRADING STATS: From graded calls only
             $grades = Grade::whereHas('call', fn($q) => $q->where('rep_id', $rep->id))
                 ->where('status', 'submitted')
                 ->whereBetween('grading_completed_at', [$startDate, $endDate])
                 ->with('categoryScores.rubricCategory')
                 ->get();
 
-            // Calculate average weighted percentage
+            // Calculate average weighted percentage from graded calls
             $percentages = $grades->map(fn($g) => $this->calculateGradePercentage($g))->filter();
-            $avgScore = $percentages->count() > 0 ? round($percentages->avg(), 1) : 0;
+            $avgScore = $percentages->count() > 0 ? round($percentages->avg(), 1) : null;
 
-            // Appointment stats
-            $solidCount = $grades->where('appointment_quality', 'solid')->count();
-            $tentativeCount = $grades->where('appointment_quality', 'tentative')->count();
-            $totalAppts = $solidCount + $tentativeCount + $grades->where('appointment_quality', 'backed_in')->count();
-            $apptRate = $grades->count() > 0 ? round(($totalAppts / $grades->count()) * 100, 1) : 0;
-
-            // Calculate trend
-            $periodDays = $startDate->diffInDays($endDate);
-            $priorStart = $startDate->copy()->subDays($periodDays + 1);
-            $priorEnd = $startDate->copy()->subDay();
-
-            $priorGrades = Grade::whereHas('call', fn($q) => $q->where('rep_id', $rep->id))
-                ->where('status', 'submitted')
-                ->whereBetween('grading_completed_at', [$priorStart, $priorEnd])
-                ->with('categoryScores.rubricCategory')
-                ->get();
-
-            $priorPercentages = $priorGrades->map(fn($g) => $this->calculateGradePercentage($g))->filter();
-            $priorAvgScore = $priorPercentages->count() > 0 ? round($priorPercentages->avg(), 1) : 0;
-
-            $trend = $priorAvgScore > 0 ? round($avgScore - $priorAvgScore, 1) : 0;
-
-            // Category averages for this rep
+            // Category averages for this rep (from graded calls)
             $categoryAvgs = [];
             foreach ($categories as $category) {
                 $catScores = GradeCategoryScore::whereIn('grade_id', $grades->pluck('id'))
@@ -188,16 +177,20 @@ class PerformanceStatsService
                 'id' => $rep->id,
                 'name' => $rep->name,
                 'email' => $rep->email,
+                // Funnel stats (from ALL calls)
+                'total_calls' => $totalCalls,
+                'appointments' => $appointments,
+                'shows' => $shows,
+                'sales' => $sales,
+                'appt_rate' => $totalCalls > 0 ? round(($appointments / $totalCalls) * 100, 1) : 0,
+                'show_rate' => $totalCalls > 0 ? round(($shows / $totalCalls) * 100, 1) : 0,
+                'sale_rate' => $totalCalls > 0 ? round(($sales / $totalCalls) * 100, 1) : 0,
+                // Grading stats (from graded calls only)
                 'calls_graded' => $grades->count(),
                 'avg_score' => $avgScore,
-                'appt_rate' => $apptRate,
-                'trend' => $trend,
-                'trend_direction' => $trend > 0 ? 'up' : ($trend < 0 ? 'down' : 'flat'),
                 'category_scores' => $categoryAvgs,
-                'solid_count' => $solidCount,
-                'tentative_count' => $tentativeCount,
             ];
-        })->sortByDesc('avg_score')->values();
+        })->sortByDesc('total_calls')->values();
     }
 
     /**
