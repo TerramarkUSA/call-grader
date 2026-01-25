@@ -126,11 +126,19 @@ class MagicLinkController extends Controller
         // Mark link as used
         $magicLink->markAsUsed();
 
+        $user = $magicLink->user;
+
+        // If user has no password, redirect to set password page
+        if (empty($user->password)) {
+            session(['set_password_user_id' => $user->id]);
+            return redirect()->route('password.set');
+        }
+
         // Log user in
-        Auth::login($magicLink->user, true); // Remember = true
+        Auth::login($user, true); // Remember = true
 
         // Redirect based on role
-        return redirect()->intended($this->redirectPath($magicLink->user));
+        return redirect()->intended($this->redirectPath($user));
     }
 
     /**
@@ -152,10 +160,8 @@ class MagicLinkController extends Controller
     protected function redirectPath(User $user): string
     {
         return match ($user->role) {
-            'system_admin' => '/admin/dashboard',
-            'site_admin' => '/admin/dashboard',
-            'manager' => '/manager/dashboard',
-            default => '/dashboard',
+            'system_admin', 'site_admin' => '/admin/accounts',
+            default => '/manager/calls',
         };
     }
 }
