@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\User;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -11,16 +10,6 @@ Route::get('/', function () {
         });
     }
     return redirect()->route('login');
-});
-
-// TODO: REMOVE BEFORE PRODUCTION - Dev login bypass
-Route::get('/dev-login', function () {
-    $user = User::where('role', 'system_admin')->first();
-    if ($user) {
-        auth()->login($user);
-        return redirect('/manager/calls');
-    }
-    return 'No system admin found. Run: php artisan db:seed --class=SystemAdminSeeder';
 });
 
 require __DIR__.'/auth.php';
