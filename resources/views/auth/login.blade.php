@@ -81,33 +81,6 @@
                 Log In
             </button>
         </form>
-
-        <div class="relative my-6">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-gray-500">or</span>
-            </div>
-        </div>
-
-        <!-- Magic Link Form -->
-        <form method="POST" action="{{ route('login.magic') }}" id="magicLinkForm">
-            @csrf
-            <input type="hidden" name="email" id="magicLinkEmail">
-
-            <button
-                type="submit"
-                onclick="document.getElementById('magicLinkEmail').value = document.getElementById('email').value"
-                class="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 border border-gray-300"
-            >
-                Send me a magic link instead
-            </button>
-        </form>
-
-        <p class="mt-4 text-xs text-gray-500 text-center">
-            Magic links allow password-free sign in via email.
-        </p>
     </div>
 </body>
 </html>

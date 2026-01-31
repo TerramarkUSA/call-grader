@@ -17,9 +17,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
-                <h2 class="text-xl font-semibold text-gray-900 mb-2">Ready to Log In</h2>
-                <p class="text-gray-600 mb-2">Welcome back, {{ $user->name }}!</p>
-                <p class="text-sm text-gray-500">Click the button below to complete your login.</p>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Welcome, {{ $user->name }}!</h2>
+                <p class="text-gray-600 mb-2">Your invitation is valid.</p>
+                <p class="text-sm text-gray-500">Click the button below to set up your account.</p>
             </div>
 
             <form method="POST" action="{{ route('login.verify.process', $token) }}">
@@ -28,7 +28,7 @@
                     type="submit"
                     class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium"
                 >
-                    Log In
+                    Set Up Account
                 </button>
             </form>
         @else
@@ -46,8 +46,11 @@
                 href="{{ route('login') }}"
                 class="block w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium text-center"
             >
-                Request New Login Link
+                Go to Login
             </a>
+            <p class="mt-4 text-sm text-gray-500 text-center">
+                Please contact your administrator if you need a new invitation.
+            </p>
         @endif
 
         <p class="mt-6 text-xs text-gray-400 text-center">
