@@ -118,7 +118,7 @@
                             @if($sfConnected)
                                 <span class="text-green-600">● Connected</span> — Enrich calls with Chance data
                             @else
-                                <span class="text-gray-400">● Not connected</span> — <a href="{{ route('admin.salesforce.index') }}" class="text-blue-600 hover:text-blue-700">Configure in Settings</a>
+                                <span class="text-gray-400">● Not connected</span> — <a href="{{ route('admin.settings.index', ['tab' => 'salesforce']) }}" class="text-blue-600 hover:text-blue-700">Configure in Settings</a>
                             @endif
                         </p>
                     </div>

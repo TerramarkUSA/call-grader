@@ -11,7 +11,8 @@ class SystemAdminSeeder extends Seeder
     {
         User::create([
             'name' => 'Gino',
-            'email' => 'gino@example.com', // CHANGE THIS to your real email
+            'email' => 'gino@americanlandandlakes.com',
+            'password' => 'password',
             'role' => 'system_admin',
             'is_active' => true,
         ]);

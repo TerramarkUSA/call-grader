@@ -82,7 +82,7 @@ class SalesforceController extends Controller
     public function callback(Request $request)
     {
         if ($request->has('error')) {
-            return redirect()->route('admin.salesforce.index')
+            return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
                 ->with('error', 'Salesforce authorization failed: ' . $request->get('error_description'));
         }
 
@@ -90,11 +90,11 @@ class SalesforceController extends Controller
         $redirectUri = route('admin.salesforce.callback');
 
         if ($service->handleCallback($request->get('code'), $redirectUri)) {
-            return redirect()->route('admin.salesforce.index')
+            return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
                 ->with('success', 'Salesforce connected successfully.');
         }
 
-        return redirect()->route('admin.salesforce.index')
+        return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
             ->with('error', 'Failed to connect to Salesforce.');
     }
 
@@ -103,7 +103,8 @@ class SalesforceController extends Controller
         $service = new SalesforceService();
         $service->disconnect();
 
-        return back()->with('success', 'Salesforce disconnected.');
+        return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
+            ->with('success', 'Salesforce disconnected.');
     }
 
     public function testConnection()
@@ -176,7 +177,8 @@ class SalesforceController extends Controller
         $service = new SalesforceService();
         $service->setFieldMapping($validated);
 
-        return back()->with('success', 'Field mapping saved.');
+        return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
+            ->with('success', 'Field mapping saved.');
     }
 
     /**
@@ -191,16 +193,19 @@ class SalesforceController extends Controller
         $service = new SalesforceService();
 
         if (!$service->isConnected()) {
-            return back()->with('error', 'Salesforce is not connected.');
+            return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
+                ->with('error', 'Salesforce is not connected.');
         }
 
         $result = $service->syncChancesByTimeRange($validated['hours']);
 
         if ($result['success']) {
-            return back()->with('success', $result['message'] . " ({$result['total_chances']} chances found, {$result['not_found']} not matched)");
+            return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
+                ->with('success', $result['message'] . " ({$result['total_chances']} chances found, {$result['not_found']} not matched)");
         }
 
-        return back()->with('error', $result['message']);
+        return redirect()->route('admin.settings.index', ['tab' => 'salesforce'])
+            ->with('error', $result['message']);
     }
 
     public function getUsers()

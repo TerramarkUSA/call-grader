@@ -76,15 +76,9 @@
                     @if(auth()->user()->role === 'system_admin')
                         <a
                             href="{{ route('admin.settings.index') }}"
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.settings.*') && !request()->routeIs('admin.salesforce.*') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800' }}"
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.settings.*') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800' }}"
                         >
                             Settings
-                        </a>
-                        <a
-                            href="{{ route('admin.salesforce.index') }}"
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.salesforce.*') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800' }}"
-                        >
-                            Salesforce
                         </a>
                     @endif
                 </div>
@@ -166,15 +160,9 @@
             @if(auth()->user()->role === 'system_admin')
                 <a
                     href="{{ route('admin.settings.index') }}"
-                    class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('admin.settings.*') && !request()->routeIs('admin.salesforce.*') ? 'bg-gray-700 text-white' : 'text-gray-300' }}"
+                    class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('admin.settings.*') ? 'bg-gray-700 text-white' : 'text-gray-300' }}"
                 >
                     Settings
-                </a>
-                <a
-                    href="{{ route('admin.salesforce.index') }}"
-                    class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('admin.salesforce.*') ? 'bg-gray-700 text-white' : 'text-gray-300' }}"
-                >
-                    Salesforce
                 </a>
             @endif
         </div>

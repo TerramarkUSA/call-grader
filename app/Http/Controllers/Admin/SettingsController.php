@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\SalesforceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,7 @@ class SettingsController extends Controller
     /**
      * Show settings page
      */
-    public function index()
+    public function index(Request $request)
     {
         $settings = [
             'deepgram_api_key' => Setting::get('deepgram_api_key') ? '••••••••' : '',
@@ -32,7 +33,43 @@ class SettingsController extends Controller
             'deepgram_multichannel' => Setting::get('deepgram_multichannel', 'true'),
         ];
 
-        return view('admin.settings.index', compact('settings'));
+        // Salesforce data (for Salesforce tab)
+        $sfConnected = false;
+        $sfInstanceUrl = '';
+        $sfClientId = '';
+        $sfConnectedAt = null;
+        $sfLastSyncAt = null;
+        $fieldMapping = [];
+        $objects = [];
+        $fields = [];
+
+        if ($request->get('tab') === 'salesforce') {
+            $service = new SalesforceService();
+            $sfConnected = $service->isConnected();
+            $sfInstanceUrl = Setting::get('sf_instance_url');
+            $sfClientId = Setting::get('sf_client_id');
+            $sfConnectedAt = Setting::get('sf_connected_at');
+            $sfLastSyncAt = Setting::get('sf_last_sync_at');
+            $fieldMapping = $service->getFieldMapping();
+
+            if ($sfConnected) {
+                $objects = $service->getObjects();
+                $selectedObject = $fieldMapping['chance_object'] ?? 'Chance__c';
+                $fields = $service->getObjectFields($selectedObject);
+            }
+        }
+
+        return view('admin.settings.index', compact(
+            'settings',
+            'sfConnected',
+            'sfInstanceUrl',
+            'sfClientId',
+            'sfConnectedAt',
+            'sfLastSyncAt',
+            'fieldMapping',
+            'objects',
+            'fields'
+        ));
     }
 
     /**

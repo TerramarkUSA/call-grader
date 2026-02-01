@@ -16,7 +16,7 @@
               <a
                 href="/admin/accounts"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('accounts') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
@@ -25,7 +25,7 @@
               <a
                 href="/admin/users"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('users') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
@@ -34,7 +34,7 @@
               <a
                 href="/admin/reps"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('reps') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
@@ -43,7 +43,7 @@
               <a
                 href="/admin/projects"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('projects') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
@@ -52,7 +52,7 @@
               <a
                 href="/admin/rubric/categories"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('rubric') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
@@ -61,11 +61,48 @@
               <a
                 href="/admin/objection-types"
                 :class="[
-                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isRoute('objection') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 ]"
               >
                 Objections
+              </a>
+              <a
+                href="/admin/costs"
+                :class="[
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                  isRoute('costs') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                ]"
+              >
+                Costs
+              </a>
+              <a
+                href="/admin/quality"
+                :class="[
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                  isRoute('quality') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                ]"
+              >
+                Quality
+              </a>
+              <a
+                href="/admin/leaderboard"
+                :class="[
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                  isRoute('leaderboard') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                ]"
+              >
+                Leaderboard
+              </a>
+              <a
+                v-if="isSystemAdmin"
+                href="/admin/settings"
+                :class="[
+                  'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                  isRoute('settings') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                ]"
+              >
+                Settings
               </a>
             </div>
           </div>
@@ -104,7 +141,7 @@
 </template>
 
 <script setup>
-import { usePage } from '@inertiajs/vue3';
+import { usePage, computed } from '@inertiajs/vue3';
 
 const page = usePage();
 
@@ -112,4 +149,8 @@ function isRoute(name) {
   const currentPath = window.location.pathname;
   return currentPath.includes(`/admin/${name}`);
 }
+
+const isSystemAdmin = computed(() => {
+  return page.props.auth?.user?.role === 'system_admin';
+});
 </script>
