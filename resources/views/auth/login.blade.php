@@ -69,7 +69,7 @@
                     <input type="checkbox" name="remember" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     <span class="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
-                <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-700">
+                <a href="{{ route('password.request') }}" id="forgotPasswordLink" class="text-sm text-blue-600 hover:text-blue-700">
                     Forgot password?
                 </a>
             </div>
@@ -82,5 +82,15 @@
             </button>
         </form>
     </div>
+
+    <script>
+        // Update forgot password link with email as user types
+        document.getElementById('email').addEventListener('input', function() {
+            const forgotLink = document.getElementById('forgotPasswordLink');
+            const baseUrl = '{{ route('password.request') }}';
+            const email = this.value.trim();
+            forgotLink.href = email ? `${baseUrl}?email=${encodeURIComponent(email)}` : baseUrl;
+        });
+    </script>
 </body>
 </html>
