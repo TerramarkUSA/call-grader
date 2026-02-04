@@ -26,6 +26,10 @@ class EnrichCallFromSalesforce implements ShouldQueue
     {
         $service = new SalesforceService();
 
+        // Clear cache before checking connection to ensure we have latest status
+        \Illuminate\Support\Facades\Cache::forget('setting.sf_connected_at');
+        \Illuminate\Support\Facades\Cache::forget('setting.sf_refresh_token');
+
         if (!$service->isConnected()) {
             Log::info('Salesforce not connected, skipping enrichment', ['call_id' => $this->call->id]);
             return;

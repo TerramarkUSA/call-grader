@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Call;
 use App\Jobs\EnrichCallFromSalesforce;
+use App\Services\SalesforceService;
 use Illuminate\Support\Facades\Log;
 
 class CallSyncService
@@ -121,7 +122,9 @@ class CallSyncService
         $call = Call::create($callData);
 
         // Dispatch Salesforce enrichment job (15 min delay)
-        if ($this->account->sf_connected_at) {
+        // Check global Salesforce connection (stored in settings table)
+        $sfService = new SalesforceService();
+        if ($sfService->isConnected()) {
             EnrichCallFromSalesforce::dispatch($call)
                 ->delay(now()->addMinutes(15));
         }
