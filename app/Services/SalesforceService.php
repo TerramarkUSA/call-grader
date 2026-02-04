@@ -154,9 +154,10 @@ class SalesforceService
         $mapping = $this->getFieldMapping();
 
         // Escape single quotes in CTM Call ID
-        $ctmCallId = str_replace("'", "\\'", $ctmCallId);
+        $escapedCtmCallId = str_replace("'", "\\'", $ctmCallId);
 
         $soql = "SELECT Id, Lead__c, OwnerId,
+                 {$mapping['ctm_call_id_field']},
                  {$mapping['project_field']},
                  {$mapping['land_sale_field']}, Land_Sale__r.Name,
                  {$mapping['contact_status_field']},
@@ -164,12 +165,45 @@ class SalesforceService
                  {$mapping['toured_property_field']},
                  {$mapping['opportunity_created_field']}
                  FROM {$mapping['chance_object']}
-                 WHERE {$mapping['ctm_call_id_field']} = '{$ctmCallId}'
+                 WHERE {$mapping['ctm_call_id_field']} = '{$escapedCtmCallId}'
                  LIMIT 1";
+
+        // Log the query for debugging
+        Log::info('Searching Salesforce for Chance', [
+            'ctm_call_id' => $ctmCallId,
+            'escaped_ctm_call_id' => $escapedCtmCallId,
+            'field' => $mapping['ctm_call_id_field'],
+            'object' => $mapping['chance_object'],
+            'soql' => $soql
+        ]);
 
         $results = $this->query($soql);
 
-        return $results['records'][0] ?? null;
+        if ($results && isset($results['records']) && count($results['records']) > 0) {
+            $chance = $results['records'][0];
+            $sfCtmId = $chance[$mapping['ctm_call_id_field']] ?? null;
+            
+            Log::info('Found Chance in Salesforce', [
+                'chance_id' => $chance['Id'],
+                'sf_ctm_id' => $sfCtmId,
+                'searched_ctm_id' => $ctmCallId,
+                'match' => $sfCtmId === $ctmCallId ? 'exact' : 'different',
+                'sf_ctm_id_length' => $sfCtmId ? strlen($sfCtmId) : 0,
+                'searched_ctm_id_length' => strlen($ctmCallId)
+            ]);
+            
+            return $chance;
+        }
+
+        Log::warning('No Chance found in Salesforce', [
+            'searched_ctm_id' => $ctmCallId,
+            'field' => $mapping['ctm_call_id_field'],
+            'object' => $mapping['chance_object'],
+            'total_records' => $results['totalSize'] ?? 0,
+            'query_successful' => $results !== null
+        ]);
+
+        return null;
     }
 
     public function getUsers(): array
@@ -473,13 +507,29 @@ class SalesforceService
     public function enrichCall(Call $call): bool
     {
         if (!$call->ctm_activity_id || !$this->isConnected()) {
+            Log::debug('Cannot enrich call - missing CTM ID or not connected', [
+                'call_id' => $call->id,
+                'has_ctm_activity_id' => !empty($call->ctm_activity_id),
+                'is_connected' => $this->isConnected()
+            ]);
             return false;
         }
+
+        Log::info('Attempting to enrich call from Salesforce', [
+            'call_id' => $call->id,
+            'ctm_activity_id' => $call->ctm_activity_id,
+            'account_id' => $call->account_id
+        ]);
 
         $chance = $this->getChanceByCtmCallId($call->ctm_activity_id);
 
         if (!$chance) {
-            Log::info('Salesforce Chance not found for call', ['call_id' => $call->id, 'ctm_activity_id' => $call->ctm_activity_id]);
+            Log::warning('Salesforce Chance not found for call - enrichment failed', [
+                'call_id' => $call->id,
+                'ctm_activity_id' => $call->ctm_activity_id,
+                'account_id' => $call->account_id,
+                'called_at' => $call->called_at?->toIso8601String()
+            ]);
             return false;
         }
 
