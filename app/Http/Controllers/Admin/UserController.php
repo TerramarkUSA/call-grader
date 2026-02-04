@@ -72,11 +72,17 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Site admins see all offices, so account assignment is optional
+        // Managers must be assigned to at least one office
+        $accountRules = $request->role === 'site_admin'
+            ? 'nullable|array'
+            : 'required|array|min:1';
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'role' => 'required|in:site_admin,manager',
-            'account_ids' => 'required|array|min:1',
+            'account_ids' => $accountRules,
             'account_ids.*' => 'exists:accounts,id',
         ]);
 
@@ -88,8 +94,10 @@ class UserController extends Controller
             'is_active' => true,
         ]);
 
-        // Attach accounts
-        $user->accounts()->attach($request->account_ids);
+        // Attach accounts (if any selected)
+        if (!empty($request->account_ids)) {
+            $user->accounts()->attach($request->account_ids);
+        }
 
         // Create magic link for initial login (24 hour expiry for invites)
         $magicLink = MagicLink::generateFor($user, 24);
@@ -179,11 +187,21 @@ class UserController extends Controller
             return back()->with('error', 'Cannot edit system admin.');
         }
 
+        // Determine role (use submitted role if system_admin, otherwise keep existing)
+        $effectiveRole = Auth::user()->role === 'system_admin' && $request->has('role')
+            ? $request->role
+            : $user->role;
+
+        // Site admins see all offices, so account assignment is optional
+        $accountRules = $effectiveRole === 'site_admin'
+            ? 'nullable|array'
+            : 'required|array|min:1';
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'role' => 'sometimes|in:manager,site_admin',
-            'account_ids' => 'required|array|min:1',
+            'account_ids' => $accountRules,
             'account_ids.*' => 'exists:accounts,id',
             'is_active' => 'boolean',
         ]);
@@ -205,8 +223,8 @@ class UserController extends Controller
             'is_active' => $validated['is_active'] ?? $user->is_active,
         ]);
 
-        // Sync accounts
-        $user->accounts()->sync($validated['account_ids']);
+        // Sync accounts (empty array for site_admin with no assignments)
+        $user->accounts()->sync($validated['account_ids'] ?? []);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User updated successfully.');

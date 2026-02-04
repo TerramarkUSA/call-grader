@@ -108,7 +108,10 @@
 
                     <!-- Offices -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Assigned Offices</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Assigned Offices
+                            <span id="officesRequired" class="text-red-500" style="{{ $user->role === 'site_admin' ? 'display:none' : '' }}">*</span>
+                        </label>
                         <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                             @foreach($accounts as $account)
                                 <label class="flex items-center gap-2 cursor-pointer">
@@ -123,9 +126,27 @@
                                 </label>
                             @endforeach
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Select at least one office.</p>
+                        <p id="officesHelp" class="text-xs text-gray-500 mt-1">
+                            {{ $user->role === 'site_admin' ? 'Site Admins can see all offices. Assignment is optional.' : 'Managers can only see calls from assigned offices.' }}
+                        </p>
                     </div>
                 </div>
+
+                <script>
+                    const roleSelect = document.querySelector('select[name="role"]');
+                    const officesRequired = document.getElementById('officesRequired');
+                    const officesHelp = document.getElementById('officesHelp');
+
+                    if (roleSelect && !roleSelect.disabled) {
+                        roleSelect.addEventListener('change', function() {
+                            const isSiteAdmin = this.value === 'site_admin';
+                            officesRequired.style.display = isSiteAdmin ? 'none' : 'inline';
+                            officesHelp.textContent = isSiteAdmin 
+                                ? 'Site Admins can see all offices. Assignment is optional.'
+                                : 'Managers can only see calls from assigned offices.';
+                        });
+                    }
+                </script>
 
                 <!-- Submit -->
                 <div class="mt-6 flex justify-between">

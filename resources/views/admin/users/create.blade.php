@@ -67,13 +67,16 @@
                             <option value="site_admin" {{ old('role') === 'site_admin' ? 'selected' : '' }}>Site Admin</option>
                         @endif
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Managers can grade calls and view reports. Site Admins can also manage users and settings.</p>
+                    <p id="roleDescription" class="text-xs text-gray-500 mt-1">Managers can grade calls and view reports. Site Admins can also manage users and settings.</p>
                 </div>
 
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Assign to Offices</label>
+                <div class="mb-6" id="officesSection">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Assign to Offices
+                        <span id="officesRequired" class="text-red-500">*</span>
+                    </label>
                     @if ($accounts->isEmpty())
-                        <p class="text-sm text-gray-500">No offices configured yet. Add a CTM connection first.</p>
+                        <p id="noOfficesMsg" class="text-sm text-gray-500">No offices configured yet. <span id="noOfficesHint">Add a CTM connection first.</span></p>
                     @else
                         <div class="border border-gray-200 rounded-lg p-3 space-y-2">
                             @foreach ($accounts as $account)
@@ -90,6 +93,7 @@
                             @endforeach
                         </div>
                     @endif
+                    <p id="officesHelp" class="text-xs text-gray-500 mt-1"></p>
                 </div>
 
                 <div class="flex justify-end gap-4">
@@ -98,12 +102,46 @@
                     </a>
                     <button
                         type="submit"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                        {{ $accounts->isEmpty() ? 'disabled' : '' }}
+                        id="submitBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Send Invitation
                     </button>
                 </div>
+
+                <script>
+                    const roleSelect = document.getElementById('role');
+                    const officesRequired = document.getElementById('officesRequired');
+                    const officesHelp = document.getElementById('officesHelp');
+                    const noOfficesHint = document.getElementById('noOfficesHint');
+                    const submitBtn = document.getElementById('submitBtn');
+                    const hasOffices = {{ $accounts->isEmpty() ? 'false' : 'true' }};
+
+                    function updateFormForRole() {
+                        const isSiteAdmin = roleSelect.value === 'site_admin';
+                        
+                        // Update required indicator
+                        officesRequired.style.display = isSiteAdmin ? 'none' : 'inline';
+                        
+                        // Update help text
+                        officesHelp.textContent = isSiteAdmin 
+                            ? 'Site Admins can see all offices. Assignment is optional.'
+                            : 'Managers can only see calls from assigned offices.';
+                        
+                        // Update no offices hint
+                        if (noOfficesHint) {
+                            noOfficesHint.textContent = isSiteAdmin 
+                                ? 'Site Admin will be able to create offices after logging in.'
+                                : 'Add a CTM connection first.';
+                        }
+                        
+                        // Enable/disable submit button
+                        submitBtn.disabled = !hasOffices && !isSiteAdmin;
+                    }
+
+                    roleSelect.addEventListener('change', updateFormForRole);
+                    updateFormForRole(); // Run on page load
+                </script>
             </form>
         </div>
     </div>
