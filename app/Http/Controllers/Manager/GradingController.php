@@ -31,6 +31,8 @@ class GradingController extends Controller
      */
     public function show(Call $call)
     {
+        $this->authorize('view', $call);
+
         // Ensure call has transcript
         if (!$call->transcript) {
             return redirect()->route('manager.calls.process', $call)
@@ -104,6 +106,8 @@ class GradingController extends Controller
      */
     public function store(Request $request, Call $call)
     {
+        $this->authorize('grade', $call);
+
         $validated = $request->validate([
             'category_scores' => 'required|array',
             'category_scores.*' => 'nullable|integer|min:1|max:4',
@@ -242,6 +246,8 @@ class GradingController extends Controller
      */
     public function audio(Call $call)
     {
+        $this->authorize('view', $call);
+
         if (!$call->recording_path) {
             abort(404, 'Recording not found');
         }
@@ -278,6 +284,8 @@ class GradingController extends Controller
      */
     public function saveNoAppointmentReason(Request $request, Call $call)
     {
+        $this->authorize('grade', $call);
+
         $validated = $request->validate([
             'objection_type_ids' => 'required|array|min:1',
             'objection_type_ids.*' => 'exists:objection_types,id',
@@ -312,6 +320,8 @@ class GradingController extends Controller
      */
     public function swapSpeakers(Call $call)
     {
+        $this->authorize('update', $call);
+
         $call->update([
             'speakers_swapped' => !$call->speakers_swapped,
         ]);
@@ -327,6 +337,8 @@ class GradingController extends Controller
      */
     public function getSharingInfo(Call $call)
     {
+        $this->authorize('view', $call);
+
         $call->load(['rep', 'project']);
 
         // Check if call has a rep
@@ -374,6 +386,8 @@ class GradingController extends Controller
      */
     public function shareWithRep(Request $request, Call $call)
     {
+        $this->authorize('view', $call);
+
         $call->load(['rep', 'project']);
 
         // Validate rep exists and has email

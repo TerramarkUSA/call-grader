@@ -744,7 +744,7 @@
             isMultichannel: {{ $isMultichannel ? 'true' : 'false' }},
             repId: {{ $call->rep_id ?? 'null' }},
             projectId: {{ $call->project_id ?? 'null' }},
-            outcome: {!! $call->outcome ? '"' . $call->outcome . '"' : 'null' !!},
+            outcome: @json($call->outcome),
             overallNotes: '',
             overallNoteId: null,
         };

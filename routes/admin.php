@@ -32,15 +32,25 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
     Route::post('/accounts/{account}/toggle-active', [AccountController::class, 'toggleActive'])->name('accounts.toggle-active');
     Route::post('/accounts/office-mappings', [AccountController::class, 'saveOfficeMappings'])->name('accounts.office-mappings');
 
-    // User Management
+    // User Management (rate limited for sensitive operations)
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::post('/users', [UserController::class, 'store'])
+        ->middleware('throttle:admin-actions')
+        ->name('users.store');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-    Route::patch('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
-    Route::post('/users/{user}/resend-invite', [UserController::class, 'resendInvite'])->name('users.resend-invite');
-    Route::put('/users/{user}/accounts', [UserController::class, 'updateAccounts'])->name('users.update-accounts');
+    Route::patch('/users/{user}', [UserController::class, 'update'])
+        ->middleware('throttle:admin-actions')
+        ->name('users.update');
+    Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])
+        ->middleware('throttle:admin-actions')
+        ->name('users.toggle-active');
+    Route::post('/users/{user}/resend-invite', [UserController::class, 'resendInvite'])
+        ->middleware('throttle:admin-actions')
+        ->name('users.resend-invite');
+    Route::put('/users/{user}/accounts', [UserController::class, 'updateAccounts'])
+        ->middleware('throttle:admin-actions')
+        ->name('users.update-accounts');
 
     // Reps Management
     Route::get('/reps', [RepController::class, 'index'])->name('reps.index');

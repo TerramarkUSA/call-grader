@@ -17,8 +17,8 @@ class EnsureHasAccount
             return redirect()->route('login');
         }
 
-        // System admin doesn't need an account
-        if ($request->user()->role === 'system_admin') {
+        // System admin and site admin don't need an account assignment
+        if (in_array($request->user()->role, ['system_admin', 'site_admin'])) {
             return $next($request);
         }
 

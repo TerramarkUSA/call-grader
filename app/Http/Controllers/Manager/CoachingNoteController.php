@@ -18,6 +18,8 @@ class CoachingNoteController extends Controller
      */
     public function index(Call $call)
     {
+        $this->authorize('view', $call);
+
         $notes = CoachingNote::where('call_id', $call->id)
             ->where('author_id', Auth::id())
             ->with(['category:id,name', 'objectionType:id,name'])
@@ -32,6 +34,8 @@ class CoachingNoteController extends Controller
      */
     public function store(Request $request, Call $call)
     {
+        $this->authorize('view', $call);
+
         $validated = $request->validate([
             'grade_id' => 'nullable|exists:grades,id',
             'line_index_start' => 'nullable|integer|min:0',

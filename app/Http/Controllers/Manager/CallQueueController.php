@@ -168,6 +168,8 @@ class CallQueueController extends Controller
      */
     public function ignore(Request $request, Call $call)
     {
+        $this->authorize('update', $call);
+
         $request->validate([
             'reason' => 'nullable|string|max:255',
         ]);
@@ -191,14 +193,21 @@ class CallQueueController extends Controller
             'reason' => 'nullable|string|max:255',
         ]);
 
-        Call::whereIn('id', $request->call_ids)
-            ->whereNull('ignored_at')
-            ->update([
-                'ignored_at' => now(),
-                'ignore_reason' => $request->get('reason', 'Bulk ignored'),
-            ]);
+        $user = auth()->user();
 
-        $count = count($request->call_ids);
+        // Scope to user's accessible accounts
+        $query = Call::whereIn('id', $request->call_ids)
+            ->whereNull('ignored_at');
+
+        if (!in_array($user->role, ['system_admin', 'site_admin'])) {
+            $query->whereIn('account_id', $user->accounts->pluck('id'));
+        }
+
+        $count = $query->update([
+            'ignored_at' => now(),
+            'ignore_reason' => $request->get('reason', 'Bulk ignored'),
+        ]);
+
         return back()->with('success', "{$count} calls ignored.");
     }
 
@@ -207,6 +216,8 @@ class CallQueueController extends Controller
      */
     public function markBad(Request $request, Call $call)
     {
+        $this->authorize('update', $call);
+
         $request->validate([
             'call_quality' => 'required|in:voicemail,wrong_number,no_conversation,test,spam,other',
             'call_quality_note' => 'nullable|string|max:255',
@@ -240,15 +251,22 @@ class CallQueueController extends Controller
             'call_quality' => 'required|in:voicemail,wrong_number,no_conversation,test,spam,other',
         ]);
 
-        Call::whereIn('id', $request->call_ids)
-            ->where('call_quality', 'pending')
-            ->update([
-                'call_quality' => $request->call_quality,
-                'marked_bad_at' => now(),
-                'marked_bad_by' => auth()->id(),
-            ]);
+        $user = auth()->user();
 
-        $count = count($request->call_ids);
+        // Scope to user's accessible accounts
+        $query = Call::whereIn('id', $request->call_ids)
+            ->where('call_quality', 'pending');
+
+        if (!in_array($user->role, ['system_admin', 'site_admin'])) {
+            $query->whereIn('account_id', $user->accounts->pluck('id'));
+        }
+
+        $count = $query->update([
+            'call_quality' => $request->call_quality,
+            'marked_bad_at' => now(),
+            'marked_bad_by' => auth()->id(),
+        ]);
+
         return back()->with('success', "{$count} calls marked as bad.");
     }
 
@@ -257,6 +275,8 @@ class CallQueueController extends Controller
      */
     public function restore(Call $call)
     {
+        $this->authorize('update', $call);
+
         $call->update([
             'ignored_at' => null,
             'ignore_reason' => null,
@@ -270,6 +290,8 @@ class CallQueueController extends Controller
      */
     public function process(Call $call)
     {
+        $this->authorize('view', $call);
+
         // Check for short call warning
         $showWarning = $call->talk_time < 30;
 

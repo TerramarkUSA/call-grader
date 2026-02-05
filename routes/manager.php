@@ -39,21 +39,29 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::post('/calls/bulk-mark-bad', [CallQueueController::class, 'bulkMarkBad'])->name('calls.bulk-mark-bad');
     Route::post('/calls/{call}/restore', [CallQueueController::class, 'restore'])->name('calls.restore');
 
-    // Transcription
+    // Transcription (rate limited - API calls are expensive)
     Route::get('/calls/{call}/process', [TranscriptionController::class, 'process'])->name('calls.process');
-    Route::post('/calls/{call}/transcribe', [TranscriptionController::class, 'transcribe'])->name('calls.transcribe');
+    Route::post('/calls/{call}/transcribe', [TranscriptionController::class, 'transcribe'])
+        ->middleware('throttle:transcription')
+        ->name('calls.transcribe');
     Route::get('/calls/{call}/audio', [TranscriptionController::class, 'audio'])->name('calls.audio');
 
-    // Grading
+    // Grading (rate limited for state-changing operations)
     Route::get('/calls/{call}/grade', [GradingController::class, 'show'])->name('calls.grade');
-    Route::post('/calls/{call}/grade', [GradingController::class, 'store'])->name('calls.grade.store');
+    Route::post('/calls/{call}/grade', [GradingController::class, 'store'])
+        ->middleware('throttle:grading')
+        ->name('calls.grade.store');
     Route::get('/calls/{call}/audio-stream', [GradingController::class, 'audio'])->name('calls.audio-stream');
-    Route::post('/calls/{call}/no-appointment', [GradingController::class, 'saveNoAppointmentReason'])->name('calls.no-appointment');
+    Route::post('/calls/{call}/no-appointment', [GradingController::class, 'saveNoAppointmentReason'])
+        ->middleware('throttle:grading')
+        ->name('calls.no-appointment');
     Route::post('/calls/{call}/swap-speakers', [GradingController::class, 'swapSpeakers'])->name('calls.swap-speakers');
     Route::patch('/calls/{call}/details', [GradingController::class, 'updateCallDetails'])->name('calls.update-details');
     Route::post('/calls/{call}/refresh-salesforce', [GradingController::class, 'refreshSalesforce'])->name('calls.refresh-salesforce');
     Route::get('/calls/{call}/sharing-info', [GradingController::class, 'getSharingInfo'])->name('calls.sharing-info');
-    Route::post('/calls/{call}/share', [GradingController::class, 'shareWithRep'])->name('calls.share');
+    Route::post('/calls/{call}/share', [GradingController::class, 'shareWithRep'])
+        ->middleware('throttle:grading')
+        ->name('calls.share');
 
     // Coaching Notes (API for grading page)
     Route::get('/notes/form-data', [CoachingNoteController::class, 'formData'])->name('notes.form-data');

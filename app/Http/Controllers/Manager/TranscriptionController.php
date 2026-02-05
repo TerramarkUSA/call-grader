@@ -19,6 +19,8 @@ class TranscriptionController extends Controller
      */
     public function process(Call $call)
     {
+        $this->authorize('view', $call);
+
         // Check if already transcribed
         if ($call->transcript) {
             return redirect()->route('manager.calls.grade', $call);
@@ -33,6 +35,8 @@ class TranscriptionController extends Controller
      */
     public function transcribe(Request $request, Call $call)
     {
+        $this->authorize('transcribe', $call);
+
         // Already transcribed?
         if ($call->transcript) {
             return response()->json([
@@ -128,6 +132,8 @@ class TranscriptionController extends Controller
      */
     public function audio(Call $call)
     {
+        $this->authorize('view', $call);
+
         if (!$call->recording_path || !Storage::exists($call->recording_path)) {
             abort(404, 'Recording not found');
         }
