@@ -32,11 +32,11 @@
                 </div>
                 <div>
                     <span class="text-gray-500">Duration:</span>
-                    <span class="font-medium">{{ floor($call->talk_time / 60) }}:{{ str_pad($call->talk_time % 60, 2, '0', STR_PAD_LEFT) }}</span>
+                    <span class="font-medium">{{ floor(($call->talk_time ?? 0) / 60) }}:{{ str_pad(($call->talk_time ?? 0) % 60, 2, '0', STR_PAD_LEFT) }}</span>
                 </div>
                 <div>
                     <span class="text-gray-500">Date:</span>
-                    <span class="font-medium">{{ $call->called_at->format('M j, Y g:i A') }}</span>
+                    <span class="font-medium">{{ $call->called_at?->format('M j, Y g:i A') ?? '—' }}</span>
                 </div>
                 <div>
                     <span class="text-gray-500">Rep:</span>

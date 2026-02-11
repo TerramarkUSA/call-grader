@@ -26,6 +26,9 @@ class TranscriptionController extends Controller
             return redirect()->route('manager.calls.grade', $call);
         }
 
+        // Ensure relationships are loaded for the view
+        $call->loadMissing(['rep', 'project']);
+
         // Show processing page
         return view('manager.calls.transcribe', compact('call'));
     }
