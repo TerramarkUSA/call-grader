@@ -17,6 +17,8 @@ use App\Services\ScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -254,8 +256,28 @@ class GradingController extends Controller
 
         // Check if it's a URL or local path
         if (filter_var($call->recording_path, FILTER_VALIDATE_URL)) {
-            // Redirect to external URL
-            return redirect($call->recording_path);
+            // Proxy the external audio through our server to avoid leaking the URL
+            try {
+                $response = Http::timeout(30)->get($call->recording_path);
+
+                if (!$response->successful()) {
+                    abort(404, 'Recording not available');
+                }
+
+                $contentType = $response->header('Content-Type') ?? 'audio/mpeg';
+
+                return response($response->body(), 200, [
+                    'Content-Type' => $contentType,
+                    'Accept-Ranges' => 'bytes',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to proxy recording', [
+                    'call_id' => $call->id,
+                    'error' => $e->getMessage(),
+                ]);
+                abort(404, 'Recording not available');
+            }
         }
 
         // Use Storage facade to get the correct path (respects disk configuration)
