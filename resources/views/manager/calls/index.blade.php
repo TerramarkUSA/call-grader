@@ -351,6 +351,9 @@
                             <td class="px-3 py-3">
                                 <div class="text-sm font-semibold text-gray-900 max-w-[140px] truncate">{{ $call->caller_name ?? 'Unknown' }}</div>
                                 <div class="text-xs text-gray-500">{{ $formattedPhone }}</div>
+                                @if($call->ctm_activity_id)
+                                    <div class="text-xs text-gray-400 font-mono" title="CTM ID: {{ $call->ctm_activity_id }}">CTM: {{ $call->ctm_activity_id }}</div>
+                                @endif
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap">
                                 @if($call->rep?->name)

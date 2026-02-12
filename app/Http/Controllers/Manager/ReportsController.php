@@ -32,9 +32,9 @@ class ReportsController extends Controller
             ->select(
                 'reps.name as rep_name',
                 DB::raw('COUNT(*) as call_count'),
-                DB::raw('AVG(weighted_score) as avg_score'),
-                DB::raw('MIN(weighted_score) as min_score'),
-                DB::raw('MAX(weighted_score) as max_score'),
+                DB::raw('AVG((overall_score / 4) * 100) as avg_score'),
+                DB::raw('MIN((overall_score / 4) * 100) as min_score'),
+                DB::raw('MAX((overall_score / 4) * 100) as max_score'),
                 DB::raw('SUM(CASE WHEN appointment_quality = "solid" THEN 1 ELSE 0 END) as solid_count'),
                 DB::raw('SUM(CASE WHEN appointment_quality = "tentative" THEN 1 ELSE 0 END) as tentative_count'),
                 DB::raw('SUM(CASE WHEN appointment_quality = "backed_in" THEN 1 ELSE 0 END) as backed_in_count')

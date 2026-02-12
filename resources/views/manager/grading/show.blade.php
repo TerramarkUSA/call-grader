@@ -604,10 +604,11 @@
                     </div>
                 </div>
 
-                <!-- Share with Rep (only for submitted grades) -->
+                {{-- Share with Rep - disabled for now
                 @if($existingGrade && $existingGrade->status === 'submitted')
                     <x-share-with-rep-modal :call="$call" :grade="$existingGrade" />
                 @endif
+                --}}
             </div>
         </div>
     </div>

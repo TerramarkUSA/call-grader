@@ -24,6 +24,7 @@
                     <h1 class="text-xl font-semibold text-gray-900">{{ $rep->name }}</h1>
                     <p class="text-sm text-gray-500">{{ $account->name }} &bull; {{ $rep->email ?? 'No email' }}</p>
                 </div>
+                {{-- Share with Rep - disabled for now
                 @if($summary['unshared_count'] > 0 && $rep->email)
                     <form method="POST" action="{{ route('manager.performance.share-all', $rep) }}" class="inline">
                         @csrf
@@ -39,6 +40,7 @@
                         </button>
                     </form>
                 @endif
+                --}}
             </div>
         </div>
 
