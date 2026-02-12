@@ -39,7 +39,7 @@ class CallQueueController extends Controller
         // Build query
         $query = Call::where('account_id', $selectedAccount->id)
             ->whereNull('ignored_at')
-            ->where('call_quality', 'pending')
+            ->whereIn('call_quality', ['pending', 'graded'])
             ->with(['rep', 'project', 'grades']);
 
         // Parse date filter
@@ -104,7 +104,7 @@ class CallQueueController extends Controller
         // Base query for queue stats - uses same date range as main query
         $baseStatsQuery = Call::where('account_id', $selectedAccount->id)
             ->whereNull('ignored_at')
-            ->where('call_quality', 'pending')
+            ->whereIn('call_quality', ['pending', 'graded'])
             ->where('called_at', '>=', $startDate)
             ->where('called_at', '<=', $endDate);
 
