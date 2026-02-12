@@ -28,7 +28,7 @@ class RubricSeeder extends Seeder
             ],
             [
                 'external_id' => 'discovery',
-                'name' => 'Discovery & Qualification',
+                'name' => 'Be a Good Detective',
                 'weight' => 0.15,
                 'sort_order' => 2,
                 'training_reference' => 'Give information to get information. Ask about timeline, budget, who else is involved in the decision. The more you know, the better you can match them to the right property.',
