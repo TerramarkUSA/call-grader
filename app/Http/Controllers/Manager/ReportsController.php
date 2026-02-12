@@ -115,9 +115,9 @@ class ReportsController extends Controller
         $dateTo = $request->get('date_to', Carbon::now()->format('Y-m-d'));
 
         // Stats by objection type
-        $objectionStats = CoachingNote::where('author_id', $userId)
-            ->where('is_objection', true)
-            ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59'])
+        $objectionStats = CoachingNote::where('coaching_notes.author_id', $userId)
+            ->where('coaching_notes.is_objection', true)
+            ->whereBetween('coaching_notes.created_at', [$dateFrom, $dateTo . ' 23:59:59'])
             ->join('objection_types', 'coaching_notes.objection_type_id', '=', 'objection_types.id')
             ->select(
                 'objection_types.id',
@@ -137,9 +137,9 @@ class ReportsController extends Controller
             });
 
         // Stats by rep
-        $repObjectionStats = CoachingNote::where('author_id', $userId)
-            ->where('is_objection', true)
-            ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59'])
+        $repObjectionStats = CoachingNote::where('coaching_notes.author_id', $userId)
+            ->where('coaching_notes.is_objection', true)
+            ->whereBetween('coaching_notes.created_at', [$dateFrom, $dateTo . ' 23:59:59'])
             ->join('calls', 'coaching_notes.call_id', '=', 'calls.id')
             ->join('reps', 'calls.rep_id', '=', 'reps.id')
             ->select(
@@ -160,19 +160,19 @@ class ReportsController extends Controller
 
         // Overall stats
         $overallStats = [
-            'total' => CoachingNote::where('author_id', $userId)
-                ->where('is_objection', true)
-                ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59'])
+            'total' => CoachingNote::where('coaching_notes.author_id', $userId)
+                ->where('coaching_notes.is_objection', true)
+                ->whereBetween('coaching_notes.created_at', [$dateFrom, $dateTo . ' 23:59:59'])
                 ->count(),
-            'overcame' => CoachingNote::where('author_id', $userId)
-                ->where('is_objection', true)
-                ->where('objection_outcome', 'overcame')
-                ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59'])
+            'overcame' => CoachingNote::where('coaching_notes.author_id', $userId)
+                ->where('coaching_notes.is_objection', true)
+                ->where('coaching_notes.objection_outcome', 'overcame')
+                ->whereBetween('coaching_notes.created_at', [$dateFrom, $dateTo . ' 23:59:59'])
                 ->count(),
-            'failed' => CoachingNote::where('author_id', $userId)
-                ->where('is_objection', true)
-                ->where('objection_outcome', 'failed')
-                ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59'])
+            'failed' => CoachingNote::where('coaching_notes.author_id', $userId)
+                ->where('coaching_notes.is_objection', true)
+                ->where('coaching_notes.objection_outcome', 'failed')
+                ->whereBetween('coaching_notes.created_at', [$dateFrom, $dateTo . ' 23:59:59'])
                 ->count(),
         ];
         $overallStats['success_rate'] = $overallStats['total'] > 0
