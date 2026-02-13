@@ -21,6 +21,7 @@
             <div class="flex gap-2">
                 @php
                     $periods = [
+                        'today' => 'Today',
                         'week' => 'This Week',
                         'month' => 'This Month',
                         'quarter' => 'This Quarter',
@@ -133,6 +134,7 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Playback %</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Playback</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quality Rate</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Flagged</th>
                         </tr>
@@ -165,6 +167,17 @@
                                 <td class="px-4 py-3">
                                     @if($manager->grades_count > 0)
                                         @php
+                                            $hours = floor($manager->total_playback_seconds / 3600);
+                                            $minutes = floor(($manager->total_playback_seconds % 3600) / 60);
+                                        @endphp
+                                        <span class="text-sm text-gray-600">{{ $hours }}h {{ $minutes }}m</span>
+                                    @else
+                                        <span class="text-sm text-gray-400">&mdash;</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if($manager->grades_count > 0)
+                                        @php
                                             $qualityColor = $manager->quality_rate >= 90 ? 'text-green-600' :
                                                 ($manager->quality_rate >= 75 ? 'text-yellow-600' : 'text-red-600');
                                         @endphp
@@ -183,7 +196,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
                                     No managers found.
                                 </td>
                             </tr>

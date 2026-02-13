@@ -372,22 +372,24 @@
                                 </select>
                             </div>
                             <div class="text-center">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Outcome</label>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">
+                                    Outcome
+                                    @if($outcomeFromSalesforce)
+                                        <span id="sf-indicator" class="text-xs text-blue-500 ml-1" title="Pre-filled from Salesforce">SF</span>
+                                    @endif
+                                </label>
                                 <select
                                     id="outcome-select"
                                     class="w-full text-sm text-center border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
-                                    <option value="">Select</option>
-                                    <option value="appointment_set" {{ $call->outcome == 'appointment_set' ? 'selected' : '' }}>Appointment Set</option>
-                                    <option value="no_appointment" {{ $call->outcome == 'no_appointment' ? 'selected' : '' }}>No Appointment</option>
-                                    <option value="callback" {{ $call->outcome == 'callback' ? 'selected' : '' }}>Callback</option>
-                                    <option value="not_qualified" {{ $call->outcome == 'not_qualified' ? 'selected' : '' }}>Not Qualified</option>
-                                    <option value="other" {{ $call->outcome == 'other' ? 'selected' : '' }}>Other</option>
+                                    <option value="">-- Select Outcome --</option>
+                                    <option value="appointment_set" {{ $suggestedOutcome == 'appointment_set' ? 'selected' : '' }}>Appointment Set</option>
+                                    <option value="no_appointment" {{ $suggestedOutcome == 'no_appointment' ? 'selected' : '' }}>No Appointment</option>
                                 </select>
                             </div>
                         </div>
                         <!-- Appointment Quality (only shown when outcome = appointment_set) -->
-                        <div id="appointment-quality-row" class="mt-3 text-center {{ $call->outcome == 'appointment_set' ? '' : 'hidden' }}">
+                        <div id="appointment-quality-row" class="mt-3 text-center {{ $suggestedOutcome == 'appointment_set' ? '' : 'hidden' }}">
                             <label class="block text-xs font-medium text-gray-500 mb-1">Appointment Quality</label>
                             <select
                                 id="appointment-quality-select"
@@ -399,6 +401,28 @@
                                 <option value="backed_in" {{ ($existingGrade?->appointment_quality ?? '') == 'backed_in' ? 'selected' : '' }}>Backed In - Reluctantly agreed, high no-show risk</option>
                             </select>
                         </div>
+
+                        <!-- Salesforce Milestones -->
+                        @if($sfData['synced_at'])
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Salesforce Status</p>
+                            <div class="flex items-center justify-center gap-4 text-sm">
+                                <span class="{{ $sfData['appointment_made'] ? 'text-green-600' : 'text-gray-400' }}">
+                                    {{ $sfData['appointment_made'] ? '✓' : '—' }} Appt
+                                </span>
+                                <span class="{{ $sfData['toured_property'] ? 'text-green-600' : 'text-gray-400' }}">
+                                    {{ $sfData['toured_property'] ? '✓' : '—' }} Toured
+                                </span>
+                                <span class="{{ $sfData['opportunity_created'] ? 'text-green-600' : 'text-gray-400' }}">
+                                    {{ $sfData['opportunity_created'] ? '✓' : '—' }} Contract
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1 text-center">
+                                Synced: {{ $sfData['synced_at']->format('M j, g:i A') }}
+                            </p>
+                        </div>
+                        <div id="sf-conflict-notice" class="hidden mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 text-center"></div>
+                        @endif
                     </div>
                 </div>
 
@@ -774,7 +798,9 @@
             isMultichannel: {{ $isMultichannel ? 'true' : 'false' }},
             repId: {{ $call->rep_id ?? 'null' }},
             projectId: {{ $call->project_id ?? 'null' }},
-            outcome: @json($call->outcome),
+            outcome: @json($suggestedOutcome),
+            outcomeFromSalesforce: {{ $outcomeFromSalesforce ? 'true' : 'false' }},
+            sfAppointmentMade: {{ $sfData['appointment_made'] ? 'true' : 'false' }},
             overallNotes: '',
             overallNoteId: null,
         };
@@ -1358,13 +1384,25 @@
                 }
             }
 
-            const appointmentSection = document.getElementById('appointment-quality-section');
-            if (!appointmentSection) {
-                showWhyNoAppointmentModal();
+            // Require outcome selection
+            if (!state.outcome) {
+                alert('Please select an outcome before submitting.');
+                document.getElementById('outcome-select').focus();
                 return;
             }
 
-            saveGrade('submitted');
+            if (state.outcome === 'appointment_set') {
+                // Require appointment quality for appointments
+                if (!state.appointmentQuality) {
+                    alert('Please select an appointment quality (Solid, Tentative, or Backed In).');
+                    document.getElementById('appointment-quality-select').focus();
+                    return;
+                }
+                saveGrade('submitted');
+            } else {
+                // no_appointment → show Why No Appointment modal (required)
+                showWhyNoAppointmentModal();
+            }
         });
 
         // ========================================
@@ -1446,6 +1484,25 @@
 
         outcomeSelect.addEventListener('change', (e) => {
             state.outcome = e.target.value || null;
+
+            // Remove SF indicator when manager manually changes
+            const sfIndicator = document.getElementById('sf-indicator');
+            if (sfIndicator) sfIndicator.remove();
+
+            // Show/hide conflict notice
+            const conflictNotice = document.getElementById('sf-conflict-notice');
+            if (conflictNotice) {
+                if (state.outcome === 'appointment_set' && !state.sfAppointmentMade) {
+                    conflictNotice.textContent = "Note: Salesforce doesn't show an appointment yet — it may not be updated.";
+                    conflictNotice.classList.remove('hidden');
+                } else if (state.outcome !== 'appointment_set' && state.sfAppointmentMade) {
+                    conflictNotice.textContent = "Note: Salesforce shows an appointment was made.";
+                    conflictNotice.classList.remove('hidden');
+                } else {
+                    conflictNotice.classList.add('hidden');
+                }
+            }
+
             // Show/hide appointment quality based on outcome
             if (e.target.value === 'appointment_set') {
                 appointmentQualityRow.classList.remove('hidden');

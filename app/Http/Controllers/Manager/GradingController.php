@@ -72,6 +72,24 @@ class GradingController extends Controller
         $isMultichannel = $transcriptData['multichannel'] ?? false;
         $speakersSwapped = (bool) $call->speakers_swapped;
 
+        // Determine suggested outcome from Salesforce data
+        $suggestedOutcome = $call->outcome; // Manager's previous selection takes priority
+        if ($suggestedOutcome === null && $call->sf_synced_at !== null) {
+            if ($call->sf_appointment_made) {
+                $suggestedOutcome = 'appointment_set';
+            }
+            // Don't auto-suggest no_appointment - let manager decide from listening
+        }
+        $outcomeFromSalesforce = ($call->outcome === null && $suggestedOutcome !== null);
+
+        // Salesforce milestone data for view
+        $sfData = [
+            'appointment_made' => (bool) $call->sf_appointment_made,
+            'toured_property' => (bool) $call->sf_toured_property,
+            'opportunity_created' => (bool) $call->sf_opportunity_created,
+            'synced_at' => $call->sf_synced_at,
+        ];
+
         // Get objection types for notes and "Why No Appointment" modal
         $objectionTypes = ObjectionType::where('is_active', true)
             ->orderBy('sort_order')
@@ -99,7 +117,10 @@ class GradingController extends Controller
             'isMultichannel',
             'speakersSwapped',
             'reps',
-            'projects'
+            'projects',
+            'suggestedOutcome',
+            'outcomeFromSalesforce',
+            'sfData'
         ));
     }
 
@@ -118,7 +139,7 @@ class GradingController extends Controller
             'appointment_quality' => 'nullable|in:solid,tentative,backed_in',
             'rep_id' => 'nullable|exists:reps,id',
             'project_id' => 'nullable|exists:projects,id',
-            'outcome' => 'nullable|in:appointment_set,no_appointment,callback,not_qualified,other',
+            'outcome' => 'nullable|in:appointment_set,no_appointment',
             'playback_seconds' => 'required|integer|min:0',
             'status' => 'required|in:draft,submitted',
         ]);

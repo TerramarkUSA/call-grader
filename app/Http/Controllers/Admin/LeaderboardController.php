@@ -18,6 +18,7 @@ class LeaderboardController extends Controller
         $period = $request->get('period', 'week'); // week, month, quarter, all
 
         $dateFrom = match ($period) {
+            'today' => Carbon::today(),
             'week' => Carbon::now()->startOfWeek(),
             'month' => Carbon::now()->startOfMonth(),
             'quarter' => Carbon::now()->startOfQuarter(),
@@ -42,7 +43,8 @@ class LeaderboardController extends Controller
                 DB::raw('COUNT(grades.id) as grades_count'),
                 DB::raw('AVG(grades.overall_score) as avg_score'),
                 DB::raw("AVG(CASE WHEN calls.talk_time > 0 THEN (grades.playback_seconds / calls.talk_time) * 100 ELSE NULL END) as avg_playback_ratio"),
-                DB::raw("SUM(CASE WHEN calls.talk_time > 0 AND (grades.playback_seconds / calls.talk_time) * 100 < {$flagThreshold} THEN 1 ELSE 0 END) as flagged_count")
+                DB::raw("SUM(CASE WHEN calls.talk_time > 0 AND (grades.playback_seconds / calls.talk_time) * 100 < {$flagThreshold} THEN 1 ELSE 0 END) as flagged_count"),
+                DB::raw('SUM(grades.playback_seconds) as total_playback_seconds')
             )
             ->groupBy('users.id', 'users.name')
             ->orderBy('grades_count', 'desc')
@@ -53,6 +55,7 @@ class LeaderboardController extends Controller
                 $user->quality_rate = $user->grades_count > 0
                     ? round((($user->grades_count - $user->flagged_count) / $user->grades_count) * 100, 1)
                     : 100;
+                $user->total_playback_seconds = $user->total_playback_seconds ?? 0;
                 return $user;
             });
 
