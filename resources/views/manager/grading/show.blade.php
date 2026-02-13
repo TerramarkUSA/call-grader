@@ -437,7 +437,10 @@
                             @foreach($categories as $category)
                                 <div class="category-card border border-gray-200 rounded-lg p-3" data-category-id="{{ $category->id }}" data-weight="{{ $category->weight }}">
                                     <div class="mb-2">
-                                        <h4 class="font-medium text-gray-900 text-sm">{{ $category->name }}</h4>
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium text-gray-900 text-sm">{{ $category->name }}</h4>
+                                            <span class="text-xs text-gray-400 font-medium">{{ intval($category->weight * 100) }}%</span>
+                                        </div>
                                         @if($category->description)
                                             <p class="text-sm text-gray-600 mt-1">{{ $category->description }}</p>
                                         @endif
@@ -450,14 +453,17 @@
                                                 type="button"
                                                 class="score-btn flex-1 py-2 text-center rounded-lg border-2 border-gray-200 text-gray-700 font-medium hover:border-blue-300 hover:bg-blue-50 transition-all text-sm"
                                                 data-score="{{ $score }}"
+                                                @if($category->scoring_criteria && isset($category->scoring_criteria[$score]))
+                                                    title="{{ $category->scoring_criteria[$score] }}"
+                                                @endif
                                             >
                                                 {{ $score }}
                                             </button>
                                         @endfor
                                     </div>
 
-                                    <!-- Training Details Accordion -->
-                                    @if($category->training_reference)
+                                    <!-- Training & Scoring Details Accordion -->
+                                    @if($category->training_reference || $category->scoring_criteria)
                                         <div class="mt-2">
                                             <button
                                                 type="button"
@@ -473,13 +479,36 @@
                                                 >
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                 </svg>
-                                                <span id="training-toggle-text-{{ $category->id }}">Training details</span>
+                                                <span id="training-toggle-text-{{ $category->id }}">Scoring guide</span>
                                             </button>
                                             <div
                                                 id="training-details-{{ $category->id }}"
-                                                class="hidden mt-2 pl-3 border-l-2 border-blue-300 text-sm text-gray-600 text-left"
+                                                class="hidden mt-2 pl-3 border-l-2 border-blue-300 text-sm text-gray-600 text-left space-y-3"
                                             >
-                                                {{ $category->training_reference }}
+                                                @if($category->training_reference)
+                                                    <div>
+                                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Training Tip</p>
+                                                        <p class="text-sm text-gray-600">{{ $category->training_reference }}</p>
+                                                    </div>
+                                                @endif
+                                                @if($category->scoring_criteria)
+                                                    <div>
+                                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">What Each Score Means</p>
+                                                        <div class="space-y-1.5">
+                                                            @foreach($category->scoring_criteria as $scoreVal => $criteria)
+                                                                <div class="flex gap-2">
+                                                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold shrink-0
+                                                                        {{ $scoreVal == 4 ? 'bg-green-100 text-green-700' : '' }}
+                                                                        {{ $scoreVal == 3 ? 'bg-blue-100 text-blue-700' : '' }}
+                                                                        {{ $scoreVal == 2 ? 'bg-amber-100 text-amber-700' : '' }}
+                                                                        {{ $scoreVal == 1 ? 'bg-red-100 text-red-700' : '' }}
+                                                                    ">{{ $scoreVal }}</span>
+                                                                    <span class="text-xs text-gray-600 leading-relaxed">{{ $criteria }}</span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     @endif
@@ -1357,18 +1386,18 @@
                         const otherChevron = document.getElementById(`training-chevron-${otherId}`);
                         const otherText = document.getElementById(`training-toggle-text-${otherId}`);
                         if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
-                        if (otherText) otherText.textContent = 'Training details';
+                        if (otherText) otherText.textContent = 'Scoring guide';
                     }
                 });
                 
                 if (isHidden) {
                     detailsDiv.classList.remove('hidden');
                     chevron.style.transform = 'rotate(90deg)';
-                    toggleText.textContent = 'Hide training';
+                    toggleText.textContent = 'Hide guide';
                 } else {
                     detailsDiv.classList.add('hidden');
                     chevron.style.transform = 'rotate(0deg)';
-                    toggleText.textContent = 'Training details';
+                    toggleText.textContent = 'Scoring guide';
                 }
             }
         }
