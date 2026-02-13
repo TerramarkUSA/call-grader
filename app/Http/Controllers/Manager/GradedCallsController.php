@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
+use App\Models\Account;
 use App\Models\Call;
 use App\Models\Grade;
 use App\Models\Rep;
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,10 +16,23 @@ class GradedCallsController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Grade::where('graded_by', Auth::id())
-            ->where('status', 'submitted')
-            ->with(['call.rep', 'call.project'])
+        $user = Auth::user();
+
+        // Get account IDs accessible to this user
+        $accountIds = $user->role === 'system_admin'
+            ? Account::where('is_active', true)->pluck('id')
+            : $user->accounts()->where('is_active', true)->pluck('accounts.id');
+
+        // Base query: all submitted grades for calls in accessible accounts
+        $query = Grade::where('status', 'submitted')
+            ->whereHas('call', fn($q) => $q->whereIn('account_id', $accountIds))
+            ->with(['call.rep', 'call.project', 'gradedBy'])
             ->orderBy('grading_completed_at', 'desc');
+
+        // Filter by grader
+        if ($request->filled('grader')) {
+            $query->where('graded_by', $request->grader);
+        }
 
         // Filters
         if ($request->filled('rep')) {
@@ -50,8 +65,11 @@ class GradedCallsController extends Controller
 
         $grades = $query->paginate(25)->withQueryString();
 
-        // Get filter options based on calls the manager has graded
-        $gradedCallIds = Grade::where('graded_by', Auth::id())->pluck('call_id');
+        // Base scope for filter options & stats: all grades in accessible accounts
+        $baseScope = Grade::where('status', 'submitted')
+            ->whereHas('call', fn($q) => $q->whereIn('account_id', $accountIds));
+
+        $gradedCallIds = (clone $baseScope)->pluck('call_id');
 
         $reps = Rep::whereIn('id', Call::whereIn('id', $gradedCallIds)->pluck('rep_id'))
             ->orderBy('name')
@@ -61,12 +79,16 @@ class GradedCallsController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        // Get list of managers who have graded calls in these accounts
+        $graders = User::whereIn('id', (clone $baseScope)->distinct()->pluck('graded_by'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         // Stats
         $stats = [
-            'total_graded' => Grade::where('graded_by', Auth::id())->where('status', 'submitted')->count(),
-            'avg_score' => round(Grade::where('graded_by', Auth::id())->where('status', 'submitted')->avg('overall_score') ?? 0, 2),
-            'this_week' => Grade::where('graded_by', Auth::id())
-                ->where('status', 'submitted')
+            'total_graded' => (clone $baseScope)->count(),
+            'avg_score' => round((clone $baseScope)->avg('overall_score') ?? 0, 2),
+            'this_week' => (clone $baseScope)
                 ->where('grading_completed_at', '>=', now()->startOfWeek())
                 ->count(),
         ];
@@ -75,6 +97,7 @@ class GradedCallsController extends Controller
             'grades',
             'reps',
             'projects',
+            'graders',
             'stats'
         ));
     }

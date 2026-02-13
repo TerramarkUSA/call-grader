@@ -13,7 +13,7 @@
         <!-- Header -->
         <div class="mb-6">
             <h1 class="text-xl font-semibold text-gray-900">Graded Calls</h1>
-            <p class="text-sm text-gray-500">Review calls you've graded</p>
+            <p class="text-sm text-gray-500">All graded calls across your office</p>
         </div>
 
         <!-- Stats Cards -->
@@ -37,7 +37,16 @@
         <!-- Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <form method="GET" action="{{ route('manager.graded-calls') }}">
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <select name="grader" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Graders</option>
+                        @foreach($graders as $grader)
+                            <option value="{{ $grader->id }}" {{ request('grader') == $grader->id ? 'selected' : '' }}>
+                                {{ $grader->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
                     <select name="rep" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">All Reps</option>
                         @foreach($reps as $rep)
@@ -99,6 +108,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Call Date</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Score</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Quality</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Graded By</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Graded</th>
                         <th class="px-4 py-3"></th>
                     </tr>
@@ -137,6 +147,7 @@
                                     </span>
                                 @endif
                             </td>
+                            <td class="px-4 py-4 text-sm text-gray-500">{{ $grade->gradedBy?->name ?? 'Unknown' }}</td>
                             <td class="px-4 py-4 text-sm text-gray-500">{{ $grade->grading_completed_at?->format('M j, Y') ?? '-' }}</td>
                             <td class="px-4 py-4">
                                 <a
@@ -149,7 +160,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">
+                            <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500">
                                 No graded calls found.
                             </td>
                         </tr>
