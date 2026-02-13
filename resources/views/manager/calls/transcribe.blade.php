@@ -48,6 +48,30 @@
                 </div>
             </div>
 
+            <!-- Audio Preview -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">Preview Audio</label>
+                    <span class="text-xs text-green-600 font-medium">Free — no transcription cost</span>
+                </div>
+                <div id="audio-container">
+                    <button
+                        id="load-audio-btn"
+                        type="button"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    >
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Click to Load Audio
+                    </button>
+                    <audio id="audio-player" controls class="hidden w-full mt-2">
+                        Your browser does not support audio.
+                    </audio>
+                    <p id="audio-error" class="hidden text-sm text-red-600 mt-2 text-center"></p>
+                </div>
+            </div>
+
             @if($call->talk_time < 30)
                 <!-- Short Call Warning -->
                 <div class="bg-orange-50 border border-orange-200 rounded p-4 mb-6">
@@ -128,6 +152,59 @@
     </div>
 
     <script>
+        // Audio preview
+        document.getElementById('load-audio-btn').addEventListener('click', async function() {
+            const btn = this;
+            const errorEl = document.getElementById('audio-error');
+            errorEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Loading audio...
+            `;
+
+            try {
+                const response = await fetch('{{ route("manager.calls.recording-url", $call) }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                });
+                const data = await response.json();
+
+                if (data.success && data.recording_url) {
+                    const audio = document.getElementById('audio-player');
+                    audio.src = data.recording_url;
+                    audio.classList.remove('hidden');
+                    btn.classList.add('hidden');
+                    audio.play();
+                } else {
+                    errorEl.textContent = data.message || 'Failed to load audio';
+                    errorEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Click to Retry
+                    `;
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Click to Retry
+                `;
+            }
+        });
+
         function startTranscription() {
             document.getElementById('status-idle').style.display = 'none';
             document.getElementById('status-error').style.display = 'none';

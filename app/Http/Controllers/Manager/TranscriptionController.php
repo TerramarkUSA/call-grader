@@ -131,6 +131,38 @@ class TranscriptionController extends Controller
     }
 
     /**
+     * Get recording URL for audio preview (before transcription)
+     */
+    public function getRecordingUrl(Call $call)
+    {
+        $this->authorize('view', $call);
+
+        // If we already have the recording downloaded, use local file
+        if ($call->recording_path && Storage::exists($call->recording_path)) {
+            return response()->json([
+                'success' => true,
+                'recording_url' => route('manager.calls.audio', $call),
+            ]);
+        }
+
+        // Otherwise fetch from CTM
+        $ctmService = new CTMService($call->account);
+        $url = $ctmService->getRecordingUrl($call->ctm_activity_id);
+
+        if (!$url) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Recording not available yet',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'recording_url' => $url,
+        ]);
+    }
+
+    /**
      * Stream recording audio
      */
     public function audio(Call $call)

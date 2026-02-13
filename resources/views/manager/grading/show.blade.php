@@ -803,6 +803,8 @@
             sfAppointmentMade: {{ $sfData['appointment_made'] ? 'true' : 'false' }},
             overallNotes: '',
             overallNoteId: null,
+            autoScrollEnabled: true,
+            isAutoScrolling: false,
         };
 
         // Load existing grade data
@@ -1083,12 +1085,22 @@
                     if (currentUtteranceIndex !== index) {
                         utterances.forEach(u => u.classList.remove('utterance-active'));
                         utterance.classList.add('utterance-active');
-                        // Auto-scroll disabled - user can scroll freely
+                        if (state.autoScrollEnabled) {
+                            state.isAutoScrolling = true;
+                            utterance.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            setTimeout(() => { state.isAutoScrolling = false; }, 500);
+                        }
                         currentUtteranceIndex = index;
                     }
                 }
             });
         }
+
+        // Detect manual scroll on transcript → pause auto-scroll
+        document.getElementById('transcript-container').addEventListener('scroll', () => {
+            if (state.isAutoScrolling) return;
+            state.autoScrollEnabled = false;
+        }, { passive: true });
 
         // ========================================
         // Category Scoring
@@ -1450,8 +1462,11 @@
         // Sync to Audio
         // ========================================
         function syncTranscriptToAudio() {
+            state.autoScrollEnabled = true;
             if (currentUtteranceIndex >= 0 && utterances[currentUtteranceIndex]) {
+                state.isAutoScrolling = true;
                 utterances[currentUtteranceIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => { state.isAutoScrolling = false; }, 500);
             }
         }
 

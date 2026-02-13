@@ -45,6 +45,7 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
         ->middleware('throttle:transcription')
         ->name('calls.transcribe');
     Route::get('/calls/{call}/audio', [TranscriptionController::class, 'audio'])->name('calls.audio');
+    Route::get('/calls/{call}/recording-url', [TranscriptionController::class, 'getRecordingUrl'])->name('calls.recording-url');
 
     // Grading (rate limited for state-changing operations)
     Route::get('/calls/{call}/grade', [GradingController::class, 'show'])->name('calls.grade');
