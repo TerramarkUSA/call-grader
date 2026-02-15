@@ -22,6 +22,7 @@
                 @php
                     $periods = [
                         'today' => 'Today',
+                        'yesterday' => 'Yesterday',
                         'week' => 'This Week',
                         'month' => 'This Month',
                         'quarter' => 'This Quarter',

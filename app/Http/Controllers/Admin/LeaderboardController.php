@@ -19,10 +19,16 @@ class LeaderboardController extends Controller
 
         $dateFrom = match ($period) {
             'today' => Carbon::today(),
+            'yesterday' => Carbon::yesterday(),
             'week' => Carbon::now()->startOfWeek(),
             'month' => Carbon::now()->startOfMonth(),
             'quarter' => Carbon::now()->startOfQuarter(),
             default => Carbon::now()->subYears(10),
+        };
+
+        $dateTo = match ($period) {
+            'yesterday' => Carbon::today(),
+            default => null,
         };
 
         $flagThreshold = (int) Setting::get('grading_quality_flag_threshold', 25);
@@ -30,11 +36,14 @@ class LeaderboardController extends Controller
         // Manager leaderboard
         $leaderboard = User::whereIn('role', ['manager', 'site_admin'])
             ->where('is_active', true)
-            ->leftJoin('grades', function ($join) use ($dateFrom) {
+            ->leftJoin('grades', function ($join) use ($dateFrom, $dateTo) {
                 $join->on('users.id', '=', 'grades.graded_by')
                     ->where('grades.status', '=', 'submitted')
                     ->whereNotNull('grades.grading_completed_at')
                     ->where('grades.grading_completed_at', '>=', $dateFrom);
+                if ($dateTo) {
+                    $join->where('grades.grading_completed_at', '<', $dateTo);
+                }
             })
             ->leftJoin('calls', 'grades.call_id', '=', 'calls.id')
             ->select(
@@ -60,8 +69,11 @@ class LeaderboardController extends Controller
             });
 
         // Add coaching notes count
-        $noteCounts = CoachingNote::where('created_at', '>=', $dateFrom)
-            ->select('author_id', DB::raw('COUNT(*) as count'))
+        $notesQuery = CoachingNote::where('created_at', '>=', $dateFrom);
+        if ($dateTo) {
+            $notesQuery->where('created_at', '<', $dateTo);
+        }
+        $noteCounts = $notesQuery->select('author_id', DB::raw('COUNT(*) as count'))
             ->groupBy('author_id')
             ->pluck('count', 'author_id');
 
