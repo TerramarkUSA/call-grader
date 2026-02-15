@@ -105,6 +105,15 @@
                         <span class="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
                             Graded
                         </span>
+                        @if(in_array(auth()->user()->role, ['system_admin', 'site_admin']))
+                            <form method="POST" action="{{ route('admin.calls.ungrade', $call) }}"
+                                  onsubmit="return confirm('This will permanently delete the grade and all scores. Coaching notes will be preserved. The call will return to the queue.\n\nContinue?')">
+                                @csrf
+                                <button type="submit" class="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors">
+                                    Clear Grade
+                                </button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -803,8 +812,6 @@
             sfAppointmentMade: {{ $sfData['appointment_made'] ? 'true' : 'false' }},
             overallNotes: '',
             overallNoteId: null,
-            autoScrollEnabled: true,
-            isAutoScrolling: false,
         };
 
         // Load existing grade data
@@ -1076,6 +1083,70 @@
             dragCurrentIndex = null;
         });
 
+        // ========================================
+        // Teleprompter-style Auto-Scroll
+        // ========================================
+        let scrollAnimationId = null;
+        let isProgrammaticScroll = false;
+        let userIsManuallyScrolling = false;
+        let manualScrollTimeout = null;
+        const transcriptContainer = document.getElementById('transcript-container');
+
+        // Detect manual scroll — back off auto-scroll for 2 seconds
+        transcriptContainer.addEventListener('scroll', () => {
+            if (isProgrammaticScroll) return;
+            userIsManuallyScrolling = true;
+            clearTimeout(manualScrollTimeout);
+            manualScrollTimeout = setTimeout(() => {
+                userIsManuallyScrolling = false;
+            }, 2000);
+        }, { passive: true });
+
+        function scrollToUtterance(element, force) {
+            if (!element) return;
+            if (userIsManuallyScrolling && !force) return;
+
+            const containerHeight = transcriptContainer.clientHeight;
+            const containerRect = transcriptContainer.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            const elementRelative = elementRect.top - containerRect.top;
+            const positionPercent = elementRelative / containerHeight;
+
+            // Inside comfort zone (20%–70%)? Do nothing.
+            if (!force && positionPercent >= 0.20 && positionPercent <= 0.70) return;
+
+            // Target: position utterance at 30% from top of container
+            const targetScrollTop = transcriptContainer.scrollTop + elementRelative - (containerHeight * 0.30);
+            animateScroll(targetScrollTop, 300);
+        }
+
+        function animateScroll(targetScrollTop, duration) {
+            if (scrollAnimationId) cancelAnimationFrame(scrollAnimationId);
+
+            const startScrollTop = transcriptContainer.scrollTop;
+            const distance = targetScrollTop - startScrollTop;
+            if (Math.abs(distance) < 1) return; // Already there
+            const startTime = performance.now();
+
+            function step(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+
+                isProgrammaticScroll = true;
+                transcriptContainer.scrollTop = startScrollTop + (distance * eased);
+
+                if (progress < 1) {
+                    scrollAnimationId = requestAnimationFrame(step);
+                } else {
+                    scrollAnimationId = null;
+                    setTimeout(() => { isProgrammaticScroll = false; }, 50);
+                }
+            }
+
+            scrollAnimationId = requestAnimationFrame(step);
+        }
+
         function highlightCurrentUtterance(currentTime) {
             utterances.forEach((utterance, index) => {
                 const start = parseFloat(utterance.dataset.start);
@@ -1085,22 +1156,12 @@
                     if (currentUtteranceIndex !== index) {
                         utterances.forEach(u => u.classList.remove('utterance-active'));
                         utterance.classList.add('utterance-active');
-                        if (state.autoScrollEnabled) {
-                            state.isAutoScrolling = true;
-                            utterance.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setTimeout(() => { state.isAutoScrolling = false; }, 500);
-                        }
+                        scrollToUtterance(utterance, false);
                         currentUtteranceIndex = index;
                     }
                 }
             });
         }
-
-        // Detect manual scroll on transcript → pause auto-scroll
-        document.getElementById('transcript-container').addEventListener('scroll', () => {
-            if (state.isAutoScrolling) return;
-            state.autoScrollEnabled = false;
-        }, { passive: true });
 
         // ========================================
         // Category Scoring
@@ -1462,11 +1523,10 @@
         // Sync to Audio
         // ========================================
         function syncTranscriptToAudio() {
-            state.autoScrollEnabled = true;
+            userIsManuallyScrolling = false;
+            clearTimeout(manualScrollTimeout);
             if (currentUtteranceIndex >= 0 && utterances[currentUtteranceIndex]) {
-                state.isAutoScrolling = true;
-                utterances[currentUtteranceIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => { state.isAutoScrolling = false; }, 500);
+                scrollToUtterance(utterances[currentUtteranceIndex], true);
             }
         }
 

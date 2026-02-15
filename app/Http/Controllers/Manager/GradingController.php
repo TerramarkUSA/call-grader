@@ -483,4 +483,42 @@ class GradingController extends Controller
             'shared_at' => $grade->fresh()->shared_with_rep_at->format('M j, Y g:i A'),
         ]);
     }
+
+    /**
+     * Clear/ungrade a call (admin only).
+     * Removes grades, scores, and checkpoint responses.
+     * Coaching notes are preserved (grade_id nullified).
+     * Call returns to the queue as "Ready to Grade".
+     */
+    public function ungrade(Call $call)
+    {
+        $this->authorize('ungrade', $call);
+
+        $gradesCount = $call->grades()->count();
+
+        DB::transaction(function () use ($call) {
+            foreach ($call->grades as $grade) {
+                // Detach coaching notes so they survive in the library
+                $grade->coachingNotes()->update(['grade_id' => null]);
+
+                // Delete grade (cascade handles category_scores and checkpoint_responses)
+                $grade->delete();
+            }
+
+            // Reset call back to queue
+            $call->update([
+                'processed_at' => null,
+                'call_quality' => 'pending',
+                'outcome' => null,
+            ]);
+        });
+
+        Log::info('Grade cleared', [
+            'call_id' => $call->id,
+            'cleared_by' => Auth::id(),
+            'grades_removed' => $gradesCount,
+        ]);
+
+        return back()->with('success', 'Grade cleared. Call returned to queue.');
+    }
 }

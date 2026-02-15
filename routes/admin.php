@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\QualityDashboardController;
 use App\Http\Controllers\Admin\LeaderboardController;
 use App\Http\Controllers\Admin\RepController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Manager\GradingController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -91,6 +92,9 @@ Route::middleware(['auth', 'role:system_admin,site_admin'])->prefix('admin')->na
 
     // Leaderboard
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard.index');
+
+    // Ungrade (clear grade from a call)
+    Route::post('/calls/{call}/ungrade', [GradingController::class, 'ungrade'])->name('calls.ungrade');
 
     // Settings (System Admin only)
     Route::middleware(['role:system_admin'])->group(function () {
