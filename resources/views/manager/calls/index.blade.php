@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Call Queue - Call Grader</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="bg-[#f9fafb] min-h-screen">
     @include('manager.partials.nav')
@@ -427,10 +428,35 @@
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap sticky right-0 bg-white">
                                 @php $gradingStatus = $call->grading_status; @endphp
-                                @if($gradingStatus === 'needs_processing')
-                                    <a href="{{ route('manager.calls.process', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                @if($gradingStatus === 'needs_processing' && $call->talk_time < 60)
+                                    {{-- Short call: Preview modal --}}
+                                    <button
+                                        type="button"
+                                        class="preview-btn inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                        data-call-id="{{ $call->id }}"
+                                        data-caller-name="{{ $call->caller_name ?? 'Unknown' }}"
+                                        data-rep-name="{{ $call->rep?->name ?? 'Unassigned' }}"
+                                        data-project-name="{{ $call->project?->name ?? 'Unassigned' }}"
+                                        data-talk-time="{{ $call->talk_time }}"
+                                        data-called-at="{{ $call->called_at?->format('M j, Y g:i A') ?? '—' }}"
+                                        data-recording-url="{{ route('manager.calls.recording-url', $call) }}"
+                                        data-transcribe-url="{{ route('manager.calls.transcribe', $call) }}"
+                                        data-skip-url="{{ route('manager.calls.skip', $call) }}"
+                                        data-grade-url="{{ route('manager.calls.grade', $call) }}"
+                                    >
+                                        Preview
+                                    </button>
+                                @elseif($gradingStatus === 'needs_processing')
+                                    {{-- Long call: auto-transcribe --}}
+                                    <button
+                                        type="button"
+                                        class="process-btn inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                        data-call-id="{{ $call->id }}"
+                                        data-transcribe-url="{{ route('manager.calls.transcribe', $call) }}"
+                                        data-grade-url="{{ route('manager.calls.grade', $call) }}"
+                                    >
                                         Process
-                                    </a>
+                                    </button>
                                 @elseif($gradingStatus === 'ready')
                                     <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
                                         Grade
@@ -507,7 +533,159 @@
         @endif
     </div>
 
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[60] space-y-2"></div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 z-50" style="display: none;">
+        <div class="absolute inset-0 bg-black/50" id="preview-modal-backdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg pointer-events-auto">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">Preview Call</h3>
+                    <button type="button" id="preview-close-btn" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Call Metadata -->
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <span class="text-gray-500">Caller:</span>
+                            <span id="preview-caller" class="font-medium text-gray-900 ml-1"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Date:</span>
+                            <span id="preview-date" class="font-medium text-gray-900 ml-1"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Rep:</span>
+                            <span id="preview-rep" class="font-medium text-gray-900 ml-1"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Project:</span>
+                            <span id="preview-project" class="font-medium text-gray-900 ml-1"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Talk Time:</span>
+                            <span id="preview-duration" class="font-medium text-gray-900 ml-1"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Player -->
+                <div class="px-6 py-4 border-b">
+                    <div id="preview-audio-loading" class="flex items-center justify-center gap-2 py-4 text-gray-500 text-sm">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Loading audio...
+                    </div>
+                    <div id="preview-audio-error" class="text-center py-4 text-sm text-red-600" style="display: none;"></div>
+                    <audio id="preview-audio-player" controls class="w-full" style="display: none;">
+                        Your browser does not support audio.
+                    </audio>
+                    <p class="text-xs text-green-600 mt-2 text-center">Free — no transcription cost</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="px-6 py-4">
+                    <div id="preview-actions" class="flex gap-3">
+                        <button type="button" id="preview-skip-btn" class="flex-1 px-4 py-2.5 border border-orange-300 text-orange-700 rounded-xl hover:bg-orange-50 font-medium text-sm transition-colors">
+                            Skip Call
+                        </button>
+                        <button type="button" id="preview-grade-btn" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-sm transition-colors">
+                            Grade This Call
+                        </button>
+                    </div>
+
+                    <!-- Skip Reason Picklist (hidden initially) -->
+                    <div id="preview-skip-panel" style="display: none;" class="mt-4">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Why are you skipping?</h4>
+                        <div class="space-y-2 mb-4">
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="not_gradeable" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Not Gradeable</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="wrong_call_type" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Wrong Call Type</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="poor_audio" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Poor Audio Quality</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="not_a_real_call" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Not a Real Call</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="too_short" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Too Short to Grade</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="preview_skip_reason" value="other" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Other</span>
+                            </label>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="button" id="preview-skip-confirm" disabled class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                Confirm Skip
+                            </button>
+                            <button type="button" id="preview-skip-cancel" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm transition-colors">
+                                Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ========================================
+        // Helpers
+        // ========================================
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        function formatDuration(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return m + ':' + String(s).padStart(2, '0');
+        }
+
+        // ========================================
+        // Toast System
+        // ========================================
+        function showToast(message, type = 'info', duration = 0) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-blue-600 text-white',
+                error: 'bg-red-600 text-white',
+                success: 'bg-green-600 text-white',
+            };
+            toast.className = `px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 ${colors[type] || colors.info}`;
+            if (type === 'info') {
+                toast.innerHTML = `<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${message}`;
+            } else {
+                toast.textContent = message;
+            }
+            container.appendChild(toast);
+            if (duration > 0) {
+                setTimeout(() => { toast.remove(); }, duration);
+            }
+            return toast;
+        }
+
+        // ========================================
+        // Date Filter
+        // ========================================
         function handleDateFilterChange(select) {
             const customRange = document.getElementById('custom-date-range');
             const dateStart = document.getElementById('date-start');
@@ -515,7 +693,6 @@
 
             if (select.value === 'custom') {
                 customRange.style.display = 'flex';
-                // Set default dates if not already set
                 if (!dateStart.value) {
                     const today = new Date();
                     const twoWeeksAgo = new Date(today);
@@ -523,16 +700,245 @@
                     dateStart.value = twoWeeksAgo.toISOString().split('T')[0];
                     dateEnd.value = today.toISOString().split('T')[0];
                 }
-                // Don't auto-submit for custom - user needs to pick dates first
             } else {
                 customRange.style.display = 'none';
-                // Clear custom date values when switching away from custom
                 dateStart.value = '';
                 dateEnd.value = '';
-                // Auto-submit form for non-custom date filters
                 select.form.submit();
             }
         }
+
+        // ========================================
+        // Auto-Transcribe (Long Calls)
+        // ========================================
+        document.querySelectorAll('.process-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const transcribeUrl = btn.dataset.transcribeUrl;
+                const gradeUrl = btn.dataset.gradeUrl;
+
+                btn.disabled = true;
+                btn.innerHTML = `<svg class="w-3 h-3 animate-spin mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Transcribing...`;
+                btn.classList.add('opacity-75', 'cursor-wait');
+
+                const toast = showToast('Transcribing call — this may take a minute. Please don\'t navigate away.', 'info');
+
+                try {
+                    const response = await fetch(transcribeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        toast.remove();
+                        window.location.href = data.redirect || gradeUrl;
+                    } else {
+                        toast.remove();
+                        showToast(data.message || 'Transcription failed. Please try again.', 'error', 5000);
+                        btn.disabled = false;
+                        btn.innerHTML = 'Process';
+                        btn.classList.remove('opacity-75', 'cursor-wait');
+                    }
+                } catch (e) {
+                    toast.remove();
+                    showToast('Network error. Please try again.', 'error', 5000);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Process';
+                    btn.classList.remove('opacity-75', 'cursor-wait');
+                }
+            });
+        });
+
+        // ========================================
+        // Preview Modal
+        // ========================================
+        const modal = document.getElementById('preview-modal');
+        const modalBackdrop = document.getElementById('preview-modal-backdrop');
+        const audioPlayer = document.getElementById('preview-audio-player');
+        const audioLoading = document.getElementById('preview-audio-loading');
+        const audioError = document.getElementById('preview-audio-error');
+        const actionsPanel = document.getElementById('preview-actions');
+        const skipPanel = document.getElementById('preview-skip-panel');
+        const skipConfirmBtn = document.getElementById('preview-skip-confirm');
+        const skipRadios = document.querySelectorAll('input[name="preview_skip_reason"]');
+        const gradeBtn = document.getElementById('preview-grade-btn');
+        const skipBtn = document.getElementById('preview-skip-btn');
+
+        let activeCallData = {};
+
+        function openPreviewModal(btn) {
+            activeCallData = {
+                callId: btn.dataset.callId,
+                recordingUrl: btn.dataset.recordingUrl,
+                transcribeUrl: btn.dataset.transcribeUrl,
+                skipUrl: btn.dataset.skipUrl,
+                gradeUrl: btn.dataset.gradeUrl,
+            };
+
+            // Populate metadata
+            document.getElementById('preview-caller').textContent = btn.dataset.callerName;
+            document.getElementById('preview-rep').textContent = btn.dataset.repName;
+            document.getElementById('preview-project').textContent = btn.dataset.projectName;
+            document.getElementById('preview-duration').textContent = formatDuration(parseInt(btn.dataset.talkTime));
+            document.getElementById('preview-date').textContent = btn.dataset.calledAt;
+
+            // Reset state
+            audioPlayer.style.display = 'none';
+            audioPlayer.src = '';
+            audioLoading.style.display = 'flex';
+            audioError.style.display = 'none';
+            actionsPanel.style.display = 'flex';
+            skipPanel.style.display = 'none';
+            skipConfirmBtn.disabled = true;
+            skipRadios.forEach(r => r.checked = false);
+            gradeBtn.disabled = false;
+            gradeBtn.textContent = 'Grade This Call';
+            skipBtn.disabled = false;
+
+            modal.style.display = 'block';
+
+            // Load audio
+            loadPreviewAudio();
+        }
+
+        function closePreviewModal() {
+            modal.style.display = 'none';
+            audioPlayer.pause();
+            audioPlayer.src = '';
+        }
+
+        async function loadPreviewAudio() {
+            try {
+                const response = await fetch(activeCallData.recordingUrl, {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                });
+                const data = await response.json();
+
+                if (data.success && data.recording_url) {
+                    audioPlayer.src = data.recording_url;
+                    audioPlayer.style.display = 'block';
+                    audioLoading.style.display = 'none';
+                } else {
+                    audioLoading.style.display = 'none';
+                    audioError.textContent = data.message || 'Audio not available';
+                    audioError.style.display = 'block';
+                }
+            } catch (e) {
+                audioLoading.style.display = 'none';
+                audioError.textContent = 'Failed to load audio';
+                audioError.style.display = 'block';
+            }
+        }
+
+        // Open modal from Preview buttons
+        document.querySelectorAll('.preview-btn').forEach(btn => {
+            btn.addEventListener('click', () => openPreviewModal(btn));
+        });
+
+        // Close modal
+        document.getElementById('preview-close-btn').addEventListener('click', closePreviewModal);
+        modalBackdrop.addEventListener('click', closePreviewModal);
+
+        // Skip flow in modal
+        skipBtn.addEventListener('click', () => {
+            actionsPanel.style.display = 'none';
+            skipPanel.style.display = 'block';
+        });
+
+        document.getElementById('preview-skip-cancel').addEventListener('click', () => {
+            skipPanel.style.display = 'none';
+            actionsPanel.style.display = 'flex';
+        });
+
+        skipRadios.forEach(r => r.addEventListener('change', () => {
+            skipConfirmBtn.disabled = false;
+        }));
+
+        skipConfirmBtn.addEventListener('click', async () => {
+            const reason = document.querySelector('input[name="preview_skip_reason"]:checked')?.value;
+            if (!reason) return;
+
+            skipConfirmBtn.disabled = true;
+            skipConfirmBtn.textContent = 'Skipping...';
+
+            try {
+                const response = await fetch(activeCallData.skipUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ skip_reason: reason }),
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    closePreviewModal();
+                    // Remove or update the call row
+                    const row = document.querySelector(`.preview-btn[data-call-id="${activeCallData.callId}"]`)?.closest('tr');
+                    if (row) {
+                        row.style.opacity = '0.4';
+                        row.style.pointerEvents = 'none';
+                        const actionCell = row.querySelector('td:last-child');
+                        if (actionCell) {
+                            actionCell.innerHTML = '<span class="inline-flex items-center justify-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg">Skipped</span>';
+                        }
+                    }
+                    showToast('Call skipped.', 'success', 3000);
+                } else {
+                    showToast(data.message || 'Failed to skip call.', 'error', 5000);
+                    skipConfirmBtn.disabled = false;
+                    skipConfirmBtn.textContent = 'Confirm Skip';
+                }
+            } catch (e) {
+                showToast('Network error. Please try again.', 'error', 5000);
+                skipConfirmBtn.disabled = false;
+                skipConfirmBtn.textContent = 'Confirm Skip';
+            }
+        });
+
+        // Grade This Call — transcribe then redirect
+        gradeBtn.addEventListener('click', async () => {
+            gradeBtn.disabled = true;
+            gradeBtn.innerHTML = `<svg class="w-4 h-4 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Transcribing...`;
+            skipBtn.disabled = true;
+
+            const toast = showToast('Transcribing call — this may take a minute. Please don\'t navigate away.', 'info');
+
+            try {
+                const response = await fetch(activeCallData.transcribeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    toast.remove();
+                    window.location.href = data.redirect || activeCallData.gradeUrl;
+                } else {
+                    toast.remove();
+                    showToast(data.message || 'Transcription failed. Please try again.', 'error', 5000);
+                    gradeBtn.disabled = false;
+                    gradeBtn.textContent = 'Grade This Call';
+                    skipBtn.disabled = false;
+                }
+            } catch (e) {
+                toast.remove();
+                showToast('Network error. Please try again.', 'error', 5000);
+                gradeBtn.disabled = false;
+                gradeBtn.textContent = 'Grade This Call';
+                skipBtn.disabled = false;
+            }
+        });
     </script>
 </body>
 </html>
