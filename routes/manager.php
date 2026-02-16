@@ -35,9 +35,8 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::get('/calls', [CallQueueController::class, 'index'])->name('calls.index');
     Route::post('/calls/{call}/ignore', [CallQueueController::class, 'ignore'])->name('calls.ignore');
     Route::post('/calls/bulk-ignore', [CallQueueController::class, 'bulkIgnore'])->name('calls.bulk-ignore');
-    Route::post('/calls/{call}/mark-bad', [CallQueueController::class, 'markBad'])->name('calls.mark-bad');
-    Route::post('/calls/bulk-mark-bad', [CallQueueController::class, 'bulkMarkBad'])->name('calls.bulk-mark-bad');
     Route::post('/calls/{call}/restore', [CallQueueController::class, 'restore'])->name('calls.restore');
+    Route::post('/calls/{call}/skip', [GradingController::class, 'skip'])->name('calls.skip');
 
     // Transcription (rate limited - API calls are expensive)
     Route::get('/calls/{call}/process', [TranscriptionController::class, 'process'])->name('calls.process');
@@ -46,6 +45,7 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
         ->name('calls.transcribe');
     Route::get('/calls/{call}/audio', [TranscriptionController::class, 'audio'])->name('calls.audio');
     Route::get('/calls/{call}/recording-url', [TranscriptionController::class, 'getRecordingUrl'])->name('calls.recording-url');
+    Route::post('/calls/{call}/page-time', [TranscriptionController::class, 'logPageTime'])->name('calls.page-time');
 
     // Grading (rate limited for state-changing operations)
     Route::get('/calls/{call}/grade', [GradingController::class, 'show'])->name('calls.grade');

@@ -3,19 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Grade;
+use App\Models\CallInteraction;
 use App\Models\CoachingNote;
-use App\Models\User;
+use App\Models\Grade;
 use App\Models\Setting;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class LeaderboardController extends Controller
 {
     public function index(Request $request)
     {
-        $period = $request->get('period', 'week'); // week, month, quarter, all
+        $period = $request->get('period', 'week');
 
         $dateFrom = match ($period) {
             'today' => Carbon::today(),
@@ -33,7 +34,7 @@ class LeaderboardController extends Controller
 
         $flagThreshold = (int) Setting::get('grading_quality_flag_threshold', 25);
 
-        // Manager leaderboard
+        // Manager leaderboard — grading metrics
         $leaderboard = User::whereIn('role', ['manager', 'site_admin'])
             ->where('is_active', true)
             ->leftJoin('grades', function ($join) use ($dateFrom, $dateTo) {
@@ -68,7 +69,7 @@ class LeaderboardController extends Controller
                 return $user;
             });
 
-        // Add coaching notes count
+        // Coaching notes count
         $notesQuery = CoachingNote::where('created_at', '>=', $dateFrom);
         if ($dateTo) {
             $notesQuery->where('created_at', '<', $dateTo);
@@ -77,24 +78,64 @@ class LeaderboardController extends Controller
             ->groupBy('author_id')
             ->pluck('count', 'author_id');
 
-        $leaderboard = $leaderboard->map(function ($user) use ($noteCounts) {
+        // Call interactions — activity metrics
+        $interactionsQuery = CallInteraction::where('created_at', '>=', $dateFrom);
+        if ($dateTo) {
+            $interactionsQuery->where('created_at', '<', $dateTo);
+        }
+        $interactions = $interactionsQuery->select(
+            'user_id',
+            DB::raw("SUM(CASE WHEN action = 'opened' THEN 1 ELSE 0 END) as opened_count"),
+            DB::raw("SUM(CASE WHEN action = 'transcribed' THEN 1 ELSE 0 END) as transcribed_count"),
+            DB::raw("SUM(CASE WHEN action = 'skipped' THEN 1 ELSE 0 END) as skipped_count"),
+            DB::raw("COALESCE(SUM(page_seconds), 0) as total_page_seconds")
+        )
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        // Merge all metrics into leaderboard
+        $leaderboard = $leaderboard->map(function ($user) use ($noteCounts, $interactions) {
             $user->notes_count = $noteCounts[$user->id] ?? 0;
+
+            $interaction = $interactions[$user->id] ?? null;
+            $user->opened_count = $interaction->opened_count ?? 0;
+            $user->transcribed_count = $interaction->transcribed_count ?? 0;
+            $user->skipped_count = $interaction->skipped_count ?? 0;
+            $user->total_page_seconds = $interaction->total_page_seconds ?? 0;
+
+            $totalDecisions = $user->grades_count + $user->skipped_count;
+            $user->completion_rate = $totalDecisions > 0
+                ? round(($user->grades_count / $totalDecisions) * 100, 1)
+                : 0;
+
             return $user;
         });
 
-        // Calculate rankings
+        // Rankings
         $byVolume = $leaderboard->sortByDesc('grades_count')->values();
         $byScore = $leaderboard->where('grades_count', '>=', 5)->sortByDesc('avg_score')->values();
         $byQuality = $leaderboard->where('grades_count', '>=', 5)->sortByDesc('quality_rate')->values();
         $byNotes = $leaderboard->sortByDesc('notes_count')->values();
+        $byThorough = $leaderboard->filter(fn($u) => ($u->grades_count + $u->skipped_count) >= 10)
+            ->sortByDesc('completion_rate')->values();
+        $byEfficient = $leaderboard->filter(fn($u) => $u->total_page_seconds > 0 && $u->grades_count > 0)
+            ->sortByDesc(fn($u) => $u->grades_count / ($u->total_page_seconds / 3600))
+            ->values();
 
         // Overall stats
+        $totalSkipped = $leaderboard->sum('skipped_count');
+        $totalGrades = $leaderboard->sum('grades_count');
+        $totalDecisionsAll = $totalGrades + $totalSkipped;
+        $totalPageSeconds = $leaderboard->sum('total_page_seconds');
+
         $overallStats = [
-            'total_grades' => $leaderboard->sum('grades_count'),
-            'total_notes' => $leaderboard->sum('notes_count'),
-            'avg_grades_per_manager' => $leaderboard->count() > 0
-                ? round($leaderboard->sum('grades_count') / $leaderboard->count(), 1)
+            'total_grades' => $totalGrades,
+            'total_skipped' => $totalSkipped,
+            'avg_completion' => $totalDecisionsAll > 0
+                ? round(($totalGrades / $totalDecisionsAll) * 100, 1)
                 : 0,
+            'total_page_hours' => round($totalPageSeconds / 3600, 1),
             'avg_score_all' => $leaderboard->where('grades_count', '>', 0)->avg('avg_score') ?? 0,
         ];
 
@@ -105,6 +146,8 @@ class LeaderboardController extends Controller
                 'byScore' => $byScore->take(5)->pluck('name', 'id')->toArray(),
                 'byQuality' => $byQuality->take(5)->pluck('name', 'id')->toArray(),
                 'byNotes' => $byNotes->take(5)->pluck('name', 'id')->toArray(),
+                'byThorough' => $byThorough->take(5)->pluck('name', 'id')->toArray(),
+                'byEfficient' => $byEfficient->take(5)->pluck('name', 'id')->toArray(),
             ],
             'overallStats' => $overallStats,
             'filters' => [

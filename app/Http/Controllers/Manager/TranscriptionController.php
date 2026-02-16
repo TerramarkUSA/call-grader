@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
 use App\Models\Call;
+use App\Models\CallInteraction;
 use App\Models\TranscriptionLog;
 use App\Services\CTMService;
 use App\Services\DeepgramService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +30,15 @@ class TranscriptionController extends Controller
 
         // Ensure relationships are loaded for the view
         $call->loadMissing(['rep', 'project']);
+
+        // Log that the manager opened this call
+        CallInteraction::create([
+            'call_id' => $call->id,
+            'user_id' => Auth::id(),
+            'action' => 'opened',
+            'page_seconds' => 0,
+            'created_at' => now(),
+        ]);
 
         // Show processing page
         return view('manager.calls.transcribe', compact('call'));
@@ -78,6 +89,7 @@ class TranscriptionController extends Controller
         $cost = $deepgram->calculateCost($call->talk_time);
         TranscriptionLog::create([
             'call_id' => $call->id,
+            'user_id' => Auth::id(),
             'audio_duration_seconds' => $call->talk_time,
             'cost' => $cost,
             'model' => 'nova-3',
@@ -92,10 +104,19 @@ class TranscriptionController extends Controller
             ], 500);
         }
 
-        // Store transcript (array cast on model handles JSON encoding)
+        // Store transcript and record who transcribed
         $call->update([
             'transcript' => $result['transcript'],
             'recording_path' => $recordingPath,
+            'transcribed_by' => Auth::id(),
+        ]);
+
+        // Log transcription interaction
+        CallInteraction::create([
+            'call_id' => $call->id,
+            'user_id' => Auth::id(),
+            'action' => 'transcribed',
+            'created_at' => now(),
         ]);
 
         return response()->json([
@@ -160,6 +181,24 @@ class TranscriptionController extends Controller
             'success' => true,
             'recording_url' => $url,
         ]);
+    }
+
+    /**
+     * Receive page-time beacon (best-effort, fire-and-forget)
+     */
+    public function logPageTime(Request $request, Call $call)
+    {
+        $pageSeconds = min((int) $request->input('page_seconds', 0), CallInteraction::PAGE_SECONDS_CAP);
+
+        // Update the most recent 'opened' interaction for this user/call
+        CallInteraction::where('call_id', $call->id)
+            ->where('user_id', Auth::id())
+            ->where('action', 'opened')
+            ->latest('created_at')
+            ->take(1)
+            ->update(['page_seconds' => $pageSeconds]);
+
+        return response()->noContent();
     }
 
     /**

@@ -17,3 +17,6 @@ Schedule::job(new RefreshCallOutcomes)->dailyAt('02:00');
 
 // Daily sync health check at 7am
 Schedule::command('sync:health-check')->dailyAt('07:00');
+
+// Detect abandoned call interactions hourly
+Schedule::command('call:detect-abandoned')->hourly();

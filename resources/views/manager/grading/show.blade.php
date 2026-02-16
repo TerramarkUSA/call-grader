@@ -671,6 +671,57 @@
                     <x-share-with-rep-modal :call="$call" :grade="$existingGrade" />
                 @endif
                 --}}
+
+                <!-- Skip Call Link -->
+                @if(!$existingGrade || $existingGrade->status !== 'submitted')
+                <div class="text-center mt-3">
+                    <button type="button" id="grading-skip-toggle" class="text-sm text-orange-600 hover:text-orange-800">
+                        Skip this call
+                    </button>
+                </div>
+
+                <div id="grading-skip-panel" class="bg-white rounded-xl shadow-sm overflow-hidden mt-3" style="display: none;">
+                    <div class="px-5 py-4">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Why are you skipping?</h3>
+                        <div class="space-y-2 mb-4">
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="not_gradeable" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Not Gradeable</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="wrong_call_type" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Wrong Call Type</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="poor_audio" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Poor Audio Quality</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="not_a_real_call" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Not a Real Call</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="too_short" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Too Short to Grade</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="grading_skip_reason" value="other" class="text-orange-600 focus:ring-orange-500">
+                                <span class="text-sm text-gray-700">Other</span>
+                            </label>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="button" id="grading-skip-confirm" disabled
+                                class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                Confirm Skip
+                            </button>
+                            <button type="button" id="grading-skip-cancel"
+                                class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -787,6 +838,38 @@
     </div>
 
     <script>
+        // ========================================
+        // Page Time Tracking
+        // ========================================
+        let _pageStart = Date.now();
+        let _pageTotal = 0;
+        let _pageVisible = true;
+        const PAGE_SECONDS_CAP = 7200;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                _pageTotal += (Date.now() - _pageStart) / 1000;
+                _pageVisible = false;
+            } else {
+                _pageStart = Date.now();
+                _pageVisible = true;
+            }
+        });
+
+        function getPageSeconds() {
+            let total = _pageTotal;
+            if (_pageVisible) total += (Date.now() - _pageStart) / 1000;
+            return Math.min(Math.round(total), PAGE_SECONDS_CAP);
+        }
+
+        window.addEventListener('beforeunload', () => {
+            const data = JSON.stringify({ page_seconds: getPageSeconds() });
+            navigator.sendBeacon(
+                '{{ route("manager.calls.page-time", $call) }}',
+                new Blob([data], { type: 'application/json' })
+            );
+        });
+
         // ========================================
         // State
         // ========================================
@@ -1366,6 +1449,7 @@
                         project_id: state.projectId,
                         outcome: state.outcome,
                         playback_seconds: Math.floor(state.playbackSeconds),
+                        page_seconds: getPageSeconds(),
                         status: status,
                     }),
                 });
@@ -1903,6 +1987,63 @@
         function skipNoAppointment() {
             closeWhyNoAppointmentModal();
             saveGrade('submitted');
+        }
+
+        // ========================================
+        // Skip Call Flow (grading page)
+        // ========================================
+        const gradingSkipToggle = document.getElementById('grading-skip-toggle');
+        const gradingSkipPanel = document.getElementById('grading-skip-panel');
+        const gradingSkipCancel = document.getElementById('grading-skip-cancel');
+        const gradingSkipConfirm = document.getElementById('grading-skip-confirm');
+        const gradingSkipRadios = document.querySelectorAll('input[name="grading_skip_reason"]');
+
+        if (gradingSkipToggle) {
+            gradingSkipToggle.addEventListener('click', () => {
+                gradingSkipPanel.style.display = gradingSkipPanel.style.display === 'none' ? 'block' : 'none';
+            });
+
+            gradingSkipCancel.addEventListener('click', () => {
+                gradingSkipPanel.style.display = 'none';
+            });
+
+            gradingSkipRadios.forEach(r => r.addEventListener('change', () => {
+                gradingSkipConfirm.disabled = false;
+            }));
+
+            gradingSkipConfirm.addEventListener('click', async () => {
+                const reason = document.querySelector('input[name="grading_skip_reason"]:checked')?.value;
+                if (!reason) return;
+
+                gradingSkipConfirm.disabled = true;
+                gradingSkipConfirm.textContent = 'Skipping...';
+
+                try {
+                    const response = await fetch('{{ route("manager.calls.skip", $call) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: JSON.stringify({
+                            skip_reason: reason,
+                            page_seconds: getPageSeconds(),
+                        }),
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.href = data.redirect;
+                    } else {
+                        alert(data.message || 'Failed to skip call.');
+                        gradingSkipConfirm.disabled = false;
+                        gradingSkipConfirm.textContent = 'Confirm Skip';
+                    }
+                } catch (e) {
+                    alert('Network error. Please try again.');
+                    gradingSkipConfirm.disabled = false;
+                    gradingSkipConfirm.textContent = 'Confirm Skip';
+                }
+            });
         }
     </script>
 </body>

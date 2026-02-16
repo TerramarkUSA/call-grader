@@ -46,6 +46,12 @@ class Call extends Model
         'sf_synced_at',
         'sf_outcome_synced_at',
         'sf_sync_attempts',
+        // Skip/disposition fields
+        'transcribed_by',
+        'skipped_at',
+        'skipped_by',
+        'skip_reason',
+        'legacy_call_quality',
     ];
 
     protected $casts = [
@@ -61,6 +67,7 @@ class Call extends Model
         'sf_opportunity_created' => 'boolean',
         'sf_synced_at' => 'datetime',
         'sf_outcome_synced_at' => 'datetime',
+        'skipped_at' => 'datetime',
     ];
 
     /**
@@ -84,6 +91,7 @@ class Call extends Model
         'ready' => 'Ready to Grade',
         'in_progress' => 'In Progress',
         'graded' => 'Graded',
+        'skipped' => 'Skipped',
     ];
 
     /**
@@ -192,6 +200,11 @@ class Call extends Model
      */
     public function getGradingStatusAttribute(): string
     {
+        // Skipped calls
+        if ($this->call_quality === 'skipped') {
+            return 'skipped';
+        }
+
         // No transcript = needs processing
         if (!$this->transcript) {
             return 'needs_processing';
@@ -231,6 +244,7 @@ class Call extends Model
             'ready' => 'bg-blue-100 text-blue-700',
             'in_progress' => 'bg-amber-100 text-amber-700',
             'graded' => 'bg-green-100 text-green-700',
+            'skipped' => 'bg-orange-100 text-orange-700',
             default => 'bg-gray-100 text-gray-600',
         };
     }
@@ -248,6 +262,7 @@ class Call extends Model
                 ->whereHas('grades', fn($q) => $q->where('status', 'draft'))
                 ->whereDoesntHave('grades', fn($q) => $q->where('status', 'submitted')),
             'graded' => $query->whereHas('grades', fn($q) => $q->where('status', 'submitted')),
+            'skipped' => $query->where('call_quality', 'skipped'),
             default => $query,
         };
     }
@@ -292,6 +307,21 @@ class Call extends Model
         return $this->hasMany(TranscriptionLog::class);
     }
 
+    public function callInteractions(): HasMany
+    {
+        return $this->hasMany(CallInteraction::class);
+    }
+
+    public function transcribedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transcribed_by');
+    }
+
+    public function skippedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'skipped_by');
+    }
+
     public function isInQueue(): bool
     {
         return !$this->ignored_at && !$this->processed_at && $this->call_quality === 'pending';
@@ -299,6 +329,11 @@ class Call extends Model
 
     public function isBadCall(): bool
     {
-        return in_array($this->call_quality, ['voicemail', 'wrong_number', 'no_conversation', 'test', 'spam', 'other']);
+        return in_array($this->call_quality, ['skipped']);
+    }
+
+    public function isSkipped(): bool
+    {
+        return $this->call_quality === 'skipped';
     }
 }

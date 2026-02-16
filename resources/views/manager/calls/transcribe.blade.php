@@ -136,22 +136,139 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex justify-between">
+        <div class="flex justify-between items-center">
             <a href="{{ route('manager.calls.index') }}" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
                 Cancel
             </a>
-            <form method="POST" action="{{ route('manager.calls.mark-bad', $call) }}" class="inline">
-                @csrf
-                <input type="hidden" name="call_quality" value="no_conversation">
-                <input type="hidden" name="delete_recording" value="0">
-                <button type="submit" class="px-4 py-2 text-orange-600 hover:text-orange-800">
-                    Mark as Bad Call
+            <button type="button" id="skip-toggle-btn" class="px-4 py-2 text-orange-600 hover:text-orange-800 text-sm">
+                Skip — Not Worth Grading
+            </button>
+        </div>
+
+        <!-- Skip Reason Panel -->
+        <div id="skip-panel" class="bg-white rounded-lg shadow p-6 mt-4" style="display: none;">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Why are you skipping this call?</h3>
+            <div class="space-y-2 mb-4">
+                @php
+                    $skipReasons = [
+                        'not_gradeable'   => 'Not Gradeable — cross-talk, can\'t follow',
+                        'wrong_call_type' => 'Wrong Call Type — service, internal, not sales',
+                        'poor_audio'      => 'Poor Audio Quality — can\'t hear clearly',
+                        'not_a_real_call' => 'Not a Real Call — hang-up, wrong number, spam',
+                        'too_short'       => 'Too Short to Grade — not enough substance',
+                        'other'           => 'Other',
+                    ];
+                @endphp
+                @foreach($skipReasons as $value => $label)
+                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="radio" name="skip_reason" value="{{ $value }}" class="text-orange-600 focus:ring-orange-500">
+                        <span class="text-sm text-gray-700">{{ $label }}</span>
+                    </label>
+                @endforeach
+            </div>
+            <div class="flex gap-3">
+                <button type="button" id="skip-confirm-btn" disabled
+                    class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    Confirm Skip
                 </button>
-            </form>
+                <button type="button" id="skip-cancel-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
+        // ========================================
+        // Page Time Tracking
+        // ========================================
+        let _pageStart = Date.now();
+        let _pageTotal = 0;
+        let _pageVisible = true;
+        const PAGE_SECONDS_CAP = 7200;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                _pageTotal += (Date.now() - _pageStart) / 1000;
+                _pageVisible = false;
+            } else {
+                _pageStart = Date.now();
+                _pageVisible = true;
+            }
+        });
+
+        function getPageSeconds() {
+            let total = _pageTotal;
+            if (_pageVisible) total += (Date.now() - _pageStart) / 1000;
+            return Math.min(Math.round(total), PAGE_SECONDS_CAP);
+        }
+
+        // Best-effort beacon on navigate away
+        window.addEventListener('beforeunload', () => {
+            const data = JSON.stringify({ page_seconds: getPageSeconds() });
+            navigator.sendBeacon(
+                '{{ route("manager.calls.page-time", $call) }}',
+                new Blob([data], { type: 'application/json' })
+            );
+        });
+
+        // ========================================
+        // Skip Flow
+        // ========================================
+        const skipToggleBtn = document.getElementById('skip-toggle-btn');
+        const skipPanel = document.getElementById('skip-panel');
+        const skipCancelBtn = document.getElementById('skip-cancel-btn');
+        const skipConfirmBtn = document.getElementById('skip-confirm-btn');
+        const skipRadios = document.querySelectorAll('input[name="skip_reason"]');
+
+        skipToggleBtn.addEventListener('click', () => {
+            skipPanel.style.display = skipPanel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        skipCancelBtn.addEventListener('click', () => {
+            skipPanel.style.display = 'none';
+        });
+
+        skipRadios.forEach(r => r.addEventListener('change', () => {
+            skipConfirmBtn.disabled = false;
+        }));
+
+        skipConfirmBtn.addEventListener('click', async () => {
+            const reason = document.querySelector('input[name="skip_reason"]:checked')?.value;
+            if (!reason) return;
+
+            skipConfirmBtn.disabled = true;
+            skipConfirmBtn.textContent = 'Skipping...';
+
+            try {
+                const response = await fetch('{{ route("manager.calls.skip", $call) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({
+                        skip_reason: reason,
+                        page_seconds: getPageSeconds(),
+                    }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message || 'Failed to skip call.');
+                    skipConfirmBtn.disabled = false;
+                    skipConfirmBtn.textContent = 'Confirm Skip';
+                }
+            } catch (e) {
+                alert('Network error. Please try again.');
+                skipConfirmBtn.disabled = false;
+                skipConfirmBtn.textContent = 'Confirm Skip';
+            }
+        });
+
+        // ========================================
         // Audio preview
         document.getElementById('load-audio-btn').addEventListener('click', async function() {
             const btn = this;

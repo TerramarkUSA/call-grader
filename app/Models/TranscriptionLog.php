@@ -9,6 +9,7 @@ class TranscriptionLog extends Model
 {
     protected $fillable = [
         'call_id',
+        'user_id',
         'audio_duration_seconds',
         'cost',
         'model',
@@ -24,5 +25,10 @@ class TranscriptionLog extends Model
     public function call(): BelongsTo
     {
         return $this->belongsTo(Call::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

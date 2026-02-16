@@ -51,6 +51,14 @@ class CallPolicy
     }
 
     /**
+     * Determine if the user can skip a call.
+     */
+    public function skip(User $user, Call $call): bool
+    {
+        return $this->view($user, $call);
+    }
+
+    /**
      * Determine if the user can clear/ungrade a call.
      * Only system admins and site admins.
      */

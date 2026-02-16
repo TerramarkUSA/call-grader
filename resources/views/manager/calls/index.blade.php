@@ -204,6 +204,11 @@
                 <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
                 Graded ({{ number_format($gradingStats['graded']) }})
             </a>
+            <a href="{{ route('manager.calls.index', array_merge($gradingFilterParams, ['grading_status' => 'skipped'])) }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors {{ $currentGradingStatus === 'skipped' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-1"></span>
+                Skipped ({{ number_format($gradingStats['skipped']) }})
+            </a>
         </div>
 
         @if (session('success'))
@@ -434,6 +439,18 @@
                                     <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-200 transition-colors">
                                         In Progress
                                     </a>
+                                @elseif($gradingStatus === 'skipped')
+                                    <span class="inline-flex items-center justify-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg">
+                                        Skipped
+                                    </span>
+                                    @if(in_array(auth()->user()->role, ['system_admin', 'site_admin']))
+                                        <form method="POST" action="{{ route('manager.calls.restore', $call) }}" class="inline ml-1">
+                                            @csrf
+                                            <button type="submit" class="text-xs text-blue-600 hover:underline" onclick="return confirm('Restore this call to the queue?')">
+                                                Restore
+                                            </button>
+                                        </form>
+                                    @endif
                                 @else
                                     <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
                                         Graded ✓

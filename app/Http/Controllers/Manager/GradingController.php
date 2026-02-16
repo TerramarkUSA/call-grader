@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Mail\CallFeedbackMail;
 use App\Models\Call;
+use App\Models\CallInteraction;
 use App\Models\Grade;
 use App\Models\GradeCategoryScore;
 use App\Models\GradeCheckpointResponse;
@@ -40,6 +41,15 @@ class GradingController extends Controller
             return redirect()->route('manager.calls.process', $call)
                 ->with('error', 'Call must be transcribed before grading.');
         }
+
+        // Log that the manager opened the grading page
+        CallInteraction::create([
+            'call_id' => $call->id,
+            'user_id' => Auth::id(),
+            'action' => 'opened',
+            'page_seconds' => 0,
+            'created_at' => now(),
+        ]);
 
         // Load relationships
         $call->load(['rep', 'project', 'account']);
@@ -141,6 +151,7 @@ class GradingController extends Controller
             'project_id' => 'nullable|exists:projects,id',
             'outcome' => 'nullable|in:appointment_set,no_appointment',
             'playback_seconds' => 'required|integer|min:0',
+            'page_seconds' => 'nullable|integer|min:0',
             'status' => 'required|in:draft,submitted',
         ]);
 
@@ -234,6 +245,19 @@ class GradingController extends Controller
                 $call->update([
                     'processed_at' => now(),
                     'call_quality' => 'graded',
+                ]);
+
+                // Log graded interaction
+                CallInteraction::create([
+                    'call_id' => $call->id,
+                    'user_id' => Auth::id(),
+                    'action' => 'graded',
+                    'page_seconds' => $validated['page_seconds'] ?? null,
+                    'metadata' => [
+                        'grade_id' => $grade->id,
+                        'overall_score' => $grade->overall_score,
+                    ],
+                    'created_at' => now(),
                 ]);
             }
 
@@ -482,6 +506,66 @@ class GradingController extends Controller
             'message' => 'Feedback sent successfully.',
             'shared_at' => $grade->fresh()->shared_with_rep_at->format('M j, Y g:i A'),
         ]);
+    }
+
+    /**
+     * Skip a call — not worth grading.
+     */
+    public function skip(Request $request, Call $call)
+    {
+        $this->authorize('skip', $call);
+
+        $validated = $request->validate([
+            'skip_reason' => 'required|in:not_gradeable,wrong_call_type,poor_audio,not_a_real_call,too_short,other',
+            'page_seconds' => 'nullable|integer|min:0',
+        ]);
+
+        DB::transaction(function () use ($validated, $call) {
+            // Update call
+            $call->update([
+                'call_quality' => 'skipped',
+                'skipped_at' => now(),
+                'skipped_by' => Auth::id(),
+                'skip_reason' => $validated['skip_reason'],
+            ]);
+
+            // Delete any draft grade for this user
+            $draft = Grade::where('call_id', $call->id)
+                ->where('graded_by', Auth::id())
+                ->where('status', 'draft')
+                ->first();
+
+            if ($draft) {
+                $draft->coachingNotes()->update(['grade_id' => null]);
+                $draft->delete();
+            }
+
+            // Log interaction
+            CallInteraction::create([
+                'call_id' => $call->id,
+                'user_id' => Auth::id(),
+                'action' => 'skipped',
+                'page_seconds' => $validated['page_seconds'] ?? null,
+                'metadata' => ['reason' => $validated['skip_reason']],
+                'created_at' => now(),
+            ]);
+        });
+
+        Log::info('Call skipped', [
+            'call_id' => $call->id,
+            'skipped_by' => Auth::id(),
+            'reason' => $validated['skip_reason'],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Call skipped.',
+                'redirect' => route('manager.calls.index'),
+            ]);
+        }
+
+        return redirect()->route('manager.calls.index')->with('success', 'Call skipped.');
     }
 
     /**

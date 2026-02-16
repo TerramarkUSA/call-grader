@@ -36,10 +36,15 @@ class CallQueueController extends Controller
         // Store selection in session for cross-page persistence
         session(['manager_account_id' => $selectedAccount->id]);
 
-        // Build query
+        // Build query — include skipped when filtering by that status
+        $allowedQualities = ['pending', 'graded'];
+        if ($request->get('grading_status') === 'skipped') {
+            $allowedQualities[] = 'skipped';
+        }
+
         $query = Call::where('account_id', $selectedAccount->id)
             ->whereNull('ignored_at')
-            ->whereIn('call_quality', ['pending', 'graded'])
+            ->whereIn('call_quality', $allowedQualities)
             ->with(['rep', 'project', 'grades']);
 
         // Parse date filter
@@ -120,12 +125,19 @@ class CallQueueController extends Controller
             'busy' => (clone $baseStatsQuery)->displayStatus('busy')->count(),
         ];
 
-        // Grading status stats
+        // Grading status stats (skipped uses a wider quality scope)
+        $skippedStatsQuery = Call::where('account_id', $selectedAccount->id)
+            ->whereNull('ignored_at')
+            ->where('call_quality', 'skipped')
+            ->where('called_at', '>=', $startDate)
+            ->where('called_at', '<=', $endDate);
+
         $gradingStats = [
             'needs_processing' => (clone $baseStatsQuery)->gradingStatus('needs_processing')->count(),
             'ready' => (clone $baseStatsQuery)->gradingStatus('ready')->count(),
             'in_progress' => (clone $baseStatsQuery)->gradingStatus('in_progress')->count(),
             'graded' => (clone $baseStatsQuery)->gradingStatus('graded')->count(),
+            'skipped' => $skippedStatsQuery->count(),
         ];
 
         // Summary stats - within the selected date range
@@ -212,74 +224,20 @@ class CallQueueController extends Controller
     }
 
     /**
-     * Mark call as bad
-     */
-    public function markBad(Request $request, Call $call)
-    {
-        $this->authorize('update', $call);
-
-        $request->validate([
-            'call_quality' => 'required|in:voicemail,wrong_number,no_conversation,test,spam,other',
-            'call_quality_note' => 'nullable|string|max:255',
-            'delete_recording' => 'boolean',
-        ]);
-
-        $call->update([
-            'call_quality' => $request->call_quality,
-            'call_quality_note' => $request->call_quality_note,
-            'marked_bad_at' => now(),
-            'marked_bad_by' => auth()->id(),
-        ]);
-
-        // Delete recording if requested
-        if ($request->boolean('delete_recording') && $call->recording_path) {
-            \Storage::delete($call->recording_path);
-            $call->update(['recording_path' => null]);
-        }
-
-        return back()->with('success', 'Call marked as bad.');
-    }
-
-    /**
-     * Bulk mark calls as bad
-     */
-    public function bulkMarkBad(Request $request)
-    {
-        $request->validate([
-            'call_ids' => 'required|array',
-            'call_ids.*' => 'exists:calls,id',
-            'call_quality' => 'required|in:voicemail,wrong_number,no_conversation,test,spam,other',
-        ]);
-
-        $user = auth()->user();
-
-        // Scope to user's accessible accounts
-        $query = Call::whereIn('id', $request->call_ids)
-            ->where('call_quality', 'pending');
-
-        if (!in_array($user->role, ['system_admin', 'site_admin'])) {
-            $query->whereIn('account_id', $user->accounts->pluck('id'));
-        }
-
-        $count = $query->update([
-            'call_quality' => $request->call_quality,
-            'marked_bad_at' => now(),
-            'marked_bad_by' => auth()->id(),
-        ]);
-
-        return back()->with('success', "{$count} calls marked as bad.");
-    }
-
-    /**
      * Restore an ignored call
      */
     public function restore(Call $call)
     {
         $this->authorize('update', $call);
 
+        // Restore from ignored or skipped state
         $call->update([
             'ignored_at' => null,
             'ignore_reason' => null,
+            'call_quality' => 'pending',
+            'skipped_at' => null,
+            'skipped_by' => null,
+            'skip_reason' => null,
         ]);
 
         return back()->with('success', 'Call restored to queue.');
