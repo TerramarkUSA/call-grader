@@ -40,198 +40,259 @@
             </div>
         </div>
 
-        <!-- Overall Stats -->
-        <div class="grid grid-cols-5 gap-4 mb-6">
+        <!-- Static Stats Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-sm text-gray-500">Total Grades</p>
-                <p class="text-2xl font-bold text-gray-900">{{ number_format($overallStats['total_grades']) }}</p>
+                <p class="text-sm text-gray-500">Total Processed</p>
+                <p class="text-2xl font-bold text-gray-900">{{ number_format($overallStats['total_processed']) }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-sm text-gray-500">Total Skipped</p>
-                <p class="text-2xl font-bold text-orange-600">{{ number_format($overallStats['total_skipped']) }}</p>
+                <p class="text-sm text-gray-500">Total Graded</p>
+                <p class="text-2xl font-bold text-blue-600">{{ number_format($overallStats['total_grades']) }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-sm text-gray-500">Completion Rate</p>
-                <p class="text-2xl font-bold {{ $overallStats['avg_completion'] >= 70 ? 'text-green-600' : ($overallStats['avg_completion'] >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
-                    {{ $overallStats['avg_completion'] }}%
-                </p>
-            </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-sm text-gray-500">Total Page Time</p>
-                <p class="text-2xl font-bold text-blue-600">{{ $overallStats['total_page_hours'] }}h</p>
+                <p class="text-sm text-gray-500">Avg Completion</p>
+                @php
+                    $compColor = $overallStats['avg_completion'] >= 70 ? 'text-green-600' :
+                        ($overallStats['avg_completion'] >= 50 ? 'text-yellow-600' : 'text-red-600');
+                @endphp
+                <p class="text-2xl font-bold {{ $compColor }}">{{ $overallStats['avg_completion'] }}%</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-sm text-gray-500">Avg Score</p>
-                <p class="text-2xl font-bold text-green-600">{{ round($overallStats['avg_score_all']) }}%</p>
+                @php
+                    $avgScoreColor = $overallStats['avg_score_all'] >= 85 ? 'text-green-600' :
+                        ($overallStats['avg_score_all'] >= 70 ? 'text-blue-600' :
+                        ($overallStats['avg_score_all'] >= 50 ? 'text-yellow-600' : 'text-red-600'));
+                @endphp
+                <p class="text-2xl font-bold {{ $avgScoreColor }}">{{ $overallStats['avg_score_all'] }}%</p>
             </div>
         </div>
 
-        <!-- Top Rankings -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <!-- Tabs -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex gap-6" id="leaderboard-tabs">
+                    <button
+                        type="button"
+                        data-tab="activity"
+                        class="tab-btn pb-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600"
+                    >
+                        Activity Overview
+                    </button>
+                    <button
+                        type="button"
+                        data-tab="quality"
+                        class="tab-btn pb-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+                    >
+                        Grading Quality
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab 1: Activity Overview -->
+        <div id="tab-activity" class="tab-panel">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manager</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opened</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Processed</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Graded</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Skipped</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abandoned</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completion %</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Page Time</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @forelse($leaderboard as $manager)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $manager->name }}</td>
+                                    <td class="px-3 py-3 text-sm text-gray-600">{{ $manager->opened_count }}</td>
+                                    <td class="px-3 py-3 text-sm text-gray-600">{{ $manager->transcribed_count }}</td>
+                                    <td class="px-3 py-3 text-sm font-medium text-gray-900">{{ $manager->grades_count }}</td>
+                                    <td class="px-3 py-3 text-sm">
+                                        @if($manager->skipped_count > 0)
+                                            <span class="text-orange-600">{{ $manager->skipped_count }}</span>
+                                        @else
+                                            <span class="text-gray-400">0</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-3 text-sm">
+                                        @if($manager->abandoned_count > 0)
+                                            <span class="text-red-500">{{ $manager->abandoned_count }}</span>
+                                        @else
+                                            <span class="text-gray-400">0</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        @if(($manager->grades_count + $manager->skipped_count + $manager->abandoned_count) > 0)
+                                            @php
+                                                $compColor = $manager->completion_rate >= 70 ? 'text-green-600' :
+                                                    ($manager->completion_rate >= 50 ? 'text-yellow-600' : 'text-red-600');
+                                            @endphp
+                                            <span class="text-sm font-medium {{ $compColor }}">{{ $manager->completion_rate }}%</span>
+                                        @else
+                                            <span class="text-sm text-gray-400">&mdash;</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        @if($manager->total_page_seconds > 0)
+                                            @php
+                                                $pageHours = floor($manager->total_page_seconds / 3600);
+                                                $pageMinutes = floor(($manager->total_page_seconds % 3600) / 60);
+                                            @endphp
+                                            <span class="text-sm text-gray-600">{{ $pageHours }}h {{ $pageMinutes }}m</span>
+                                        @else
+                                            <span class="text-sm text-gray-400">&mdash;</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                        No managers found.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Grading Quality -->
+        <div id="tab-quality" class="tab-panel" style="display: none;">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manager</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grades</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Playback %</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Playback</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quality Rate</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Flagged</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @php $hasQualityRows = false; @endphp
+                            @foreach($leaderboard as $manager)
+                                @if($manager->grades_count > 0)
+                                    @php $hasQualityRows = true; @endphp
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $manager->name }}</td>
+                                        <td class="px-3 py-3 text-sm font-medium text-gray-900">{{ $manager->grades_count }}</td>
+                                        <td class="px-3 py-3">
+                                            @php
+                                                $scoreColor = $manager->avg_score >= 85 ? 'text-green-600' :
+                                                    ($manager->avg_score >= 70 ? 'text-blue-600' :
+                                                    ($manager->avg_score >= 50 ? 'text-yellow-600' : 'text-red-600'));
+                                            @endphp
+                                            <span class="text-sm font-medium {{ $scoreColor }}">{{ $manager->avg_score }}%</span>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            @php
+                                                $playbackColor = $manager->avg_playback_ratio >= 85 ? 'text-green-600' :
+                                                    ($manager->avg_playback_ratio >= 70 ? 'text-blue-600' :
+                                                    ($manager->avg_playback_ratio >= 50 ? 'text-yellow-600' : 'text-red-600'));
+                                            @endphp
+                                            <span class="text-sm font-medium {{ $playbackColor }}">{{ $manager->avg_playback_ratio }}%</span>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            @php
+                                                $hours = floor($manager->total_playback_seconds / 3600);
+                                                $minutes = floor(($manager->total_playback_seconds % 3600) / 60);
+                                            @endphp
+                                            <span class="text-sm text-gray-600">{{ $hours }}h {{ $minutes }}m</span>
+                                        </td>
+                                        <td class="px-3 py-3 text-sm text-gray-600">{{ $manager->notes_count }}</td>
+                                        <td class="px-3 py-3">
+                                            @php
+                                                $qualityColor = $manager->quality_rate >= 90 ? 'text-green-600' :
+                                                    ($manager->quality_rate >= 75 ? 'text-yellow-600' : 'text-red-600');
+                                            @endphp
+                                            <span class="text-sm font-medium {{ $qualityColor }}">{{ $manager->quality_rate }}%</span>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            @if($manager->flagged_count > 0)
+                                                <span class="text-sm text-red-600">{{ $manager->flagged_count }}</span>
+                                            @else
+                                                <span class="text-sm text-gray-400">0</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                            @if(!$hasQualityRows)
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                        No grades submitted yet.
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rankings -->
+        <div class="grid grid-cols-3 gap-4 mt-6">
             @php
                 $rankingLabels = [
-                    'byVolume' => 'Most Grades',
-                    'byScore' => 'Highest Scores',
-                    'byQuality' => 'Best Quality',
-                    'byNotes' => 'Most Notes',
-                    'byThorough' => 'Most Thorough',
-                    'byEfficient' => 'Most Efficient',
+                    'byThorough' => ['Most Thorough', 'Highest completion %, min 10 processed'],
+                    'byEfficient' => ['Most Efficient', 'Most grades per page-hour, min 5 grades'],
+                    'byScore' => ['Top Scorer', 'Highest avg score, min 5 grades'],
                 ];
             @endphp
-            @foreach($rankingLabels as $key => $title)
+            @foreach($rankingLabels as $key => [$title, $subtitle])
                 <div class="bg-white rounded-lg shadow p-4">
-                    <h3 class="text-sm font-medium text-gray-500 mb-2">{{ $title }}</h3>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">{{ $title }}</h3>
+                    <p class="text-xs text-gray-400 mb-3">{{ $subtitle }}</p>
                     <ol class="space-y-1">
                         @php $index = 1; @endphp
                         @foreach($rankings[$key] as $id => $name)
                             <li class="text-sm">
-                                <span class="text-gray-400">{{ $index }}.</span> {{ $name }}
+                                <span class="text-gray-400 font-medium">{{ $index }}.</span> {{ $name }}
                             </li>
                             @php $index++; @endphp
                         @endforeach
                         @if(empty($rankings[$key]))
-                            <li class="text-sm text-gray-400">No data</li>
+                            <li class="text-sm text-gray-400">Not enough data</li>
                         @endif
                     </ol>
                 </div>
             @endforeach
         </div>
-
-        <!-- Full Leaderboard Table -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <!-- Group Headers -->
-                        <tr class="bg-gray-50">
-                            <th class="px-4 py-2"></th>
-                            <th colspan="5" class="px-4 py-2 text-center text-xs font-semibold text-blue-700 uppercase bg-blue-50 border-l border-r border-blue-100">Volume</th>
-                            <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-amber-700 uppercase bg-amber-50 border-r border-amber-100">Effort</th>
-                            <th colspan="4" class="px-4 py-2 text-center text-xs font-semibold text-green-700 uppercase bg-green-50 border-r border-green-100">Quality</th>
-                        </tr>
-                        <!-- Column Headers -->
-                        <tr class="bg-gray-50 border-t">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manager</th>
-                            {{-- Volume --}}
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50 border-l border-blue-100">Opened</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50">Transcribed</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50">Graded</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50">Skipped</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50 border-r border-blue-100">Completion</th>
-                            {{-- Effort --}}
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50">Page Time</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50">Playback %</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50 border-r border-amber-100">Total Playback</th>
-                            {{-- Quality --}}
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Avg Score</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Notes</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Quality Rate</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50 border-r border-green-100">Flagged</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @forelse($leaderboard as $manager)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $manager->name }}</td>
-
-                                {{-- Volume --}}
-                                <td class="px-3 py-3 text-sm text-gray-600 bg-blue-50/20">{{ $manager->opened_count }}</td>
-                                <td class="px-3 py-3 text-sm text-gray-600 bg-blue-50/20">{{ $manager->transcribed_count }}</td>
-                                <td class="px-3 py-3 text-sm font-medium text-gray-900 bg-blue-50/20">{{ $manager->grades_count }}</td>
-                                <td class="px-3 py-3 text-sm text-gray-600 bg-blue-50/20">
-                                    @if($manager->skipped_count > 0)
-                                        <span class="text-orange-600">{{ $manager->skipped_count }}</span>
-                                    @else
-                                        <span class="text-gray-400">0</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 bg-blue-50/20">
-                                    @if(($manager->grades_count + $manager->skipped_count) > 0)
-                                        @php
-                                            $compColor = $manager->completion_rate >= 70 ? 'text-green-600' :
-                                                ($manager->completion_rate >= 50 ? 'text-yellow-600' : 'text-red-600');
-                                        @endphp
-                                        <span class="text-sm font-medium {{ $compColor }}">{{ $manager->completion_rate }}%</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-
-                                {{-- Effort --}}
-                                <td class="px-3 py-3 bg-amber-50/20">
-                                    @if($manager->total_page_seconds > 0)
-                                        @php
-                                            $pageHours = floor($manager->total_page_seconds / 3600);
-                                            $pageMinutes = floor(($manager->total_page_seconds % 3600) / 60);
-                                        @endphp
-                                        <span class="text-sm text-gray-600">{{ $pageHours }}h {{ $pageMinutes }}m</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 bg-amber-50/20">
-                                    @if($manager->grades_count > 0)
-                                        <span class="text-sm text-gray-600">{{ $manager->avg_playback_ratio }}%</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 bg-amber-50/20">
-                                    @if($manager->grades_count > 0)
-                                        @php
-                                            $hours = floor($manager->total_playback_seconds / 3600);
-                                            $minutes = floor(($manager->total_playback_seconds % 3600) / 60);
-                                        @endphp
-                                        <span class="text-sm text-gray-600">{{ $hours }}h {{ $minutes }}m</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-
-                                {{-- Quality --}}
-                                <td class="px-3 py-3 bg-green-50/20">
-                                    @if($manager->grades_count > 0)
-                                        @php
-                                            $scoreColor = $manager->avg_score >= 85 ? 'text-green-600' :
-                                                ($manager->avg_score >= 70 ? 'text-blue-600' :
-                                                ($manager->avg_score >= 50 ? 'text-yellow-600' : 'text-red-600'));
-                                        @endphp
-                                        <span class="text-sm font-medium {{ $scoreColor }}">{{ $manager->avg_score }}%</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 text-sm text-gray-600 bg-green-50/20">{{ $manager->notes_count }}</td>
-                                <td class="px-3 py-3 bg-green-50/20">
-                                    @if($manager->grades_count > 0)
-                                        @php
-                                            $qualityColor = $manager->quality_rate >= 90 ? 'text-green-600' :
-                                                ($manager->quality_rate >= 75 ? 'text-yellow-600' : 'text-red-600');
-                                        @endphp
-                                        <span class="text-sm font-medium {{ $qualityColor }}">{{ $manager->quality_rate }}%</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 bg-green-50/20">
-                                    @if($manager->flagged_count > 0)
-                                        <span class="text-sm text-red-600">{{ $manager->flagged_count }}</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">0</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="13" class="px-4 py-8 text-center text-gray-500">
-                                    No managers found.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-btn');
+        const panels = document.querySelectorAll('.tab-panel');
+
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+
+                tabs.forEach(t => {
+                    t.classList.remove('border-blue-600', 'text-blue-600', 'font-semibold');
+                    t.classList.add('border-transparent', 'text-gray-500', 'font-medium');
+                });
+                btn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
+                btn.classList.add('border-blue-600', 'text-blue-600', 'font-semibold');
+
+                panels.forEach(p => p.style.display = 'none');
+                document.getElementById('tab-' + target).style.display = 'block';
+            });
+        });
+    </script>
 </body>
 </html>
