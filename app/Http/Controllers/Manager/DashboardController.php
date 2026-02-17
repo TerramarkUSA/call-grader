@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ManagerFeedbackMail;
 use App\Models\Call;
 use App\Models\Grade;
 use App\Models\CoachingNote;
 use App\Models\GradeCategoryScore;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -170,5 +173,19 @@ class DashboardController extends Controller
             'notesStats' => $notesStats,
             'gradingLeaderboard' => $gradingLeaderboard,
         ]);
+    }
+
+    public function submitFeedback(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:2000',
+        ]);
+
+        $user = Auth::user();
+        $alertEmail = env('ALERT_EMAIL', 'it@terramarkusa.com');
+
+        Mail::to($alertEmail)->send(new ManagerFeedbackMail($user, $request->input('message')));
+
+        return response()->json(['success' => true, 'message' => 'Feedback sent — thanks!']);
     }
 }

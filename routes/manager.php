@@ -17,6 +17,7 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/feedback', [DashboardController::class, 'submitFeedback'])->name('feedback');
 
     // Reports
     Route::get('/reports/rep-performance', [ReportsController::class, 'repPerformance'])->name('reports.rep-performance');

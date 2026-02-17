@@ -133,6 +133,12 @@
                         Admin &rarr;
                     </a>
                 @endif
+                <button
+                    onclick="document.getElementById('feedback-modal').classList.remove('hidden')"
+                    class="text-sm text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                    Feedback
+                </button>
                 <span class="text-sm text-gray-500">{{ auth()->user()->name }}</span>
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf
@@ -214,5 +220,110 @@
         </div>
     </div>
 </nav>
+<!-- Feedback Modal -->
+<div id="feedback-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/40 transition-opacity" onclick="document.getElementById('feedback-modal').classList.add('hidden')"></div>
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 z-10">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Send Feedback</h3>
+                <button onclick="document.getElementById('feedback-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mb-3">Bug reports, feature ideas, or anything on your mind.</p>
+            <textarea
+                id="feedback-message"
+                rows="5"
+                maxlength="2000"
+                placeholder="What's on your mind?"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            ></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span id="feedback-char-count" class="text-xs text-gray-400">0 / 2000</span>
+                <div class="flex gap-2">
+                    <button
+                        onclick="document.getElementById('feedback-modal').classList.add('hidden')"
+                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        id="feedback-send-btn"
+                        onclick="sendFeedback()"
+                        disabled
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+            <div id="feedback-toast" class="hidden mt-3 px-3 py-2 rounded-lg text-sm font-medium text-center"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const textarea = document.getElementById('feedback-message');
+        const charCount = document.getElementById('feedback-char-count');
+        const sendBtn = document.getElementById('feedback-send-btn');
+
+        textarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length + ' / 2000';
+            sendBtn.disabled = this.value.trim().length === 0;
+        });
+    })();
+
+    async function sendFeedback() {
+        const textarea = document.getElementById('feedback-message');
+        const sendBtn = document.getElementById('feedback-send-btn');
+        const toast = document.getElementById('feedback-toast');
+        const message = textarea.value.trim();
+
+        if (!message) return;
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+
+        try {
+            const response = await fetch('{{ route("manager.feedback") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ message: message }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                toast.textContent = 'Feedback sent — thanks!';
+                toast.className = 'mt-3 px-3 py-2 rounded-lg text-sm font-medium text-center bg-green-50 text-green-700';
+                toast.classList.remove('hidden');
+                textarea.value = '';
+                document.getElementById('feedback-char-count').textContent = '0 / 2000';
+                setTimeout(() => {
+                    document.getElementById('feedback-modal').classList.add('hidden');
+                    toast.classList.add('hidden');
+                }, 1500);
+            } else {
+                throw new Error(data.message || 'Failed to send');
+            }
+        } catch (error) {
+            toast.textContent = 'Failed to send. Please try again.';
+            toast.className = 'mt-3 px-3 py-2 rounded-lg text-sm font-medium text-center bg-red-50 text-red-700';
+            toast.classList.remove('hidden');
+        } finally {
+            sendBtn.textContent = 'Send';
+            sendBtn.disabled = textarea.value.trim().length === 0;
+        }
+    }
+</script>
+
 <!-- Alpine.js for dropdown -->
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
