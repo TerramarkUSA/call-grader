@@ -2029,6 +2029,7 @@
                         body: JSON.stringify({
                             skip_reason: reason,
                             page_seconds: getPageSeconds(),
+                            playback_seconds: Math.floor(state.playbackSeconds),
                         }),
                     });
                     const data = await response.json();

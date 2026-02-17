@@ -147,10 +147,13 @@
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 bg-amber-50/20">
-                                    @if($manager->grades_count > 0)
+                                    @php
+                                        $combinedPlayback = $manager->total_playback_seconds + $manager->skipped_playback_seconds;
+                                    @endphp
+                                    @if($combinedPlayback > 0)
                                         @php
-                                            $hours = floor($manager->total_playback_seconds / 3600);
-                                            $minutes = floor(($manager->total_playback_seconds % 3600) / 60);
+                                            $hours = floor($combinedPlayback / 3600);
+                                            $minutes = floor(($combinedPlayback % 3600) / 60);
                                         @endphp
                                         <span class="text-sm text-gray-600">{{ $hours }}h {{ $minutes }}m</span>
                                     @else

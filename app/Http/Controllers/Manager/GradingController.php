@@ -518,6 +518,7 @@ class GradingController extends Controller
         $validated = $request->validate([
             'skip_reason' => 'required|in:not_gradeable,wrong_call_type,poor_audio,not_a_real_call,too_short,other',
             'page_seconds' => 'nullable|integer|min:0',
+            'playback_seconds' => 'nullable|integer|min:0',
         ]);
 
         DB::transaction(function () use ($validated, $call) {
@@ -546,7 +547,10 @@ class GradingController extends Controller
                 'user_id' => Auth::id(),
                 'action' => 'skipped',
                 'page_seconds' => $validated['page_seconds'] ?? null,
-                'metadata' => ['reason' => $validated['skip_reason']],
+                'metadata' => [
+                    'reason' => $validated['skip_reason'],
+                    'playback_seconds' => $validated['playback_seconds'] ?? 0,
+                ],
                 'created_at' => now(),
             ]);
         });
