@@ -439,17 +439,28 @@
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
                     <div class="border-b">
                         <div class="flex">
-                            <button class="flex-1 px-5 py-2.5 text-sm font-medium text-gray-900 border-b-2 border-blue-500 bg-white">
+                            <button id="rubric-tab-btn" onclick="switchRubricTab('rubric')" class="flex-1 px-5 py-2.5 text-sm font-medium text-gray-900 border-b-2 border-blue-500 bg-white cursor-pointer transition-colors">
                                 Rubric Grading
                             </button>
-                            <button class="flex-1 px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50">
-                                Notes ({{ count($existingGrade?->coachingNotes ?? []) }})
+                            <button id="notes-tab-btn" onclick="switchRubricTab('notes')" class="flex-1 px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50 cursor-pointer border-b-2 border-transparent transition-colors">
+                                Notes (<span id="notes-tab-count">0</span>)
                             </button>
                         </div>
                     </div>
 
+                    <!-- Notes Panel (hidden by default) -->
+                    <div id="notes-panel" class="px-5 py-4 flex-1 overflow-y-auto min-h-0 hidden">
+                        <div class="mb-3">
+                            <h3 class="text-base font-semibold text-gray-900">Coaching Notes</h3>
+                            <p class="text-sm text-gray-500">Click a snippet note to jump to that moment</p>
+                        </div>
+                        <div id="notes-list" class="space-y-3">
+                            <p class="text-sm text-gray-400 text-center py-4">No notes yet. Add notes from the transcript.</p>
+                        </div>
+                    </div>
+
                     <!-- Sales Call Evaluation -->
-                    <div class="px-5 py-4 flex-1 overflow-y-auto min-h-0">
+                    <div id="rubric-panel" class="px-5 py-4 flex-1 overflow-y-auto min-h-0">
                         <div class="mb-3">
                             <h3 class="text-base font-semibold text-gray-900">Sales Call Evaluation</h3>
                             <p class="text-sm text-gray-500">Score each category 1-4 based on call performance</p>
@@ -746,9 +757,15 @@
                     <p id="modal-timestamp" class="text-xs text-gray-400 mt-1">0:00</p>
                 </div>
 
+                <!-- Existing notes for this line -->
+                <div id="modal-existing-notes" class="hidden px-6 py-3 border-b bg-blue-50/50">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Existing Notes</p>
+                    <div id="modal-existing-notes-list" class="space-y-2"></div>
+                </div>
+
                 <div class="px-6 py-4 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Coaching Note</label>
+                        <label id="note-form-label" class="block text-sm font-medium text-gray-700 mb-1">Coaching Note</label>
                         <textarea
                             id="note-text-input"
                             rows="3"
@@ -1812,6 +1829,123 @@
                     if (indicator) indicator.classList.remove('hidden');
                 }
             });
+
+            renderNotesPanel();
+        }
+
+        // ========================================
+        // Notes Tab & Panel
+        // ========================================
+        function switchRubricTab(tab) {
+            const rubricPanel = document.getElementById('rubric-panel');
+            const notesPanel = document.getElementById('notes-panel');
+            const rubricBtn = document.getElementById('rubric-tab-btn');
+            const notesBtn = document.getElementById('notes-tab-btn');
+
+            if (tab === 'notes') {
+                rubricPanel.classList.add('hidden');
+                notesPanel.classList.remove('hidden');
+                rubricBtn.className = 'flex-1 px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50 cursor-pointer border-b-2 border-transparent transition-colors';
+                notesBtn.className = 'flex-1 px-5 py-2.5 text-sm font-medium text-gray-900 border-b-2 border-blue-500 bg-white cursor-pointer transition-colors';
+                renderNotesPanel();
+            } else {
+                notesPanel.classList.add('hidden');
+                rubricPanel.classList.remove('hidden');
+                notesBtn.className = 'flex-1 px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50 cursor-pointer border-b-2 border-transparent transition-colors';
+                rubricBtn.className = 'flex-1 px-5 py-2.5 text-sm font-medium text-gray-900 border-b-2 border-blue-500 bg-white cursor-pointer transition-colors';
+            }
+        }
+
+        function renderNotesPanel() {
+            const container = document.getElementById('notes-list');
+            const allNotes = [];
+
+            // Add overall note if exists
+            if (state.overallNotes) {
+                allNotes.push({ type: 'overall', note_text: state.overallNotes, id: state.overallNoteId });
+            }
+
+            // Add snippet notes sorted by position
+            const snippets = [...state.notes].sort((a, b) => (a.line_index_start ?? 0) - (b.line_index_start ?? 0));
+            snippets.forEach(n => allNotes.push({ type: 'snippet', ...n }));
+
+            // Update tab count
+            document.getElementById('notes-tab-count').textContent = allNotes.length;
+
+            if (allNotes.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">No notes yet. Add notes from the transcript.</p>';
+                return;
+            }
+
+            container.innerHTML = allNotes.map(note => {
+                if (note.type === 'overall') {
+                    return `<div class="border border-purple-200 rounded-lg p-3 bg-purple-50/30">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">Overall</span>
+                        </div>
+                        <p class="text-sm text-gray-900">${escapeHtml(note.note_text)}</p>
+                    </div>`;
+                }
+
+                const hasTimestamp = note.timestamp_start != null;
+                const cursorClass = hasTimestamp ? 'cursor-pointer hover:border-blue-300 hover:shadow-sm' : '';
+                const clickAttr = hasTimestamp ? `onclick="jumpToNote(${note.line_index_start}, ${note.timestamp_start})"` : '';
+
+                let categoryTag = '';
+                if (note.is_objection && note.objection_type) {
+                    const outcomeIcon = note.objection_outcome === 'overcame' ? '&#10003;' : '&#10007;';
+                    const outcomeColor = note.objection_outcome === 'overcame' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                    categoryTag = `<span class="rounded-full px-2 py-0.5 text-xs font-medium ${outcomeColor}">${escapeHtml(note.objection_type.name)} ${outcomeIcon}</span>`;
+                } else if (note.category) {
+                    categoryTag = `<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">${escapeHtml(note.category.name)}</span>`;
+                }
+
+                const timestampLabel = hasTimestamp ? `<span class="text-xs text-gray-400 ml-auto">${formatTime(note.timestamp_start)}</span>` : '';
+
+                const transcriptSnippet = note.transcript_text
+                    ? `<p class="text-xs text-gray-400 italic mb-1.5 line-clamp-2">"${escapeHtml(note.transcript_text)}"</p>`
+                    : '';
+
+                return `<div class="border border-gray-200 rounded-lg p-3 transition-all ${cursorClass}" ${clickAttr}>
+                    ${transcriptSnippet}
+                    <p class="text-sm text-gray-900 mb-2">${escapeHtml(note.note_text)}</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        ${categoryTag}
+                        ${note.is_objection ? '<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700">Objection</span>' : ''}
+                        ${timestampLabel}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function jumpToNote(lineIndexStart, timestamp) {
+            // Seek audio
+            if (timestamp != null && !isNaN(timestamp)) {
+                audio.currentTime = parseFloat(timestamp);
+                audio.play();
+            }
+
+            // Find the utterance with this line index and scroll to it
+            const utterances = document.querySelectorAll('.utterance');
+            for (const utterance of utterances) {
+                const indices = JSON.parse(utterance.dataset.indices || '[]');
+                if (indices.includes(lineIndexStart)) {
+                    // Highlight briefly
+                    utterance.style.transition = 'background-color 0.3s';
+                    utterance.style.backgroundColor = 'rgb(219 234 254)';
+                    setTimeout(() => { utterance.style.backgroundColor = ''; }, 2000);
+
+                    // Scroll transcript to this utterance
+                    scrollToUtterance(utterance, true);
+                    break;
+                }
+            }
         }
 
         function openAddNoteModal(selection) {
@@ -1827,6 +1961,35 @@
             document.getElementById('objection-details').classList.add('hidden');
             document.getElementById('objection-type-select').value = '';
             resetOutcomeButtons();
+
+            // Show existing notes for this line range
+            const existingContainer = document.getElementById('modal-existing-notes');
+            const existingList = document.getElementById('modal-existing-notes-list');
+            const lineStart = selection.lineIndexStart;
+            const lineEnd = selection.lineIndexEnd;
+            const matchingNotes = state.notes.filter(n => {
+                return n.line_index_start >= lineStart && n.line_index_start <= lineEnd;
+            });
+
+            if (matchingNotes.length > 0) {
+                existingList.innerHTML = matchingNotes.map(note => {
+                    let badge = '';
+                    if (note.is_objection) {
+                        badge = '<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700">Objection</span>';
+                    } else if (note.category) {
+                        badge = `<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">${escapeHtml(note.category.name)}</span>`;
+                    }
+                    return `<div class="bg-white rounded-lg p-2.5 border border-gray-200">
+                        <p class="text-sm text-gray-900">${escapeHtml(note.note_text)}</p>
+                        ${badge ? `<div class="mt-1.5">${badge}</div>` : ''}
+                    </div>`;
+                }).join('');
+                existingContainer.classList.remove('hidden');
+                document.getElementById('note-form-label').textContent = 'Add Another Note';
+            } else {
+                existingContainer.classList.add('hidden');
+                document.getElementById('note-form-label').textContent = 'Coaching Note';
+            }
 
             document.getElementById('add-note-modal').classList.remove('hidden');
             document.getElementById('note-text-input').focus();

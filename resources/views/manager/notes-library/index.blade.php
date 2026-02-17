@@ -57,9 +57,9 @@
 
                     <select name="note_type" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">All Note Types</option>
-                        <option value="overall" {{ request('note_type') == 'overall' ? 'selected' : '' }}>Overall Notes</option>
-                        <option value="snippet" {{ request('note_type') == 'snippet' ? 'selected' : '' }}>Snippet Notes</option>
-                        <option value="objection" {{ request('note_type') == 'objection' ? 'selected' : '' }}>Objections</option>
+                        <option value="overall" {{ ($noteType ?? '') == 'overall' ? 'selected' : '' }}>Overall Notes</option>
+                        <option value="snippet" {{ ($noteType ?? '') == 'snippet' ? 'selected' : '' }}>Snippet Notes</option>
+                        <option value="objection" {{ ($noteType ?? '') == 'objection' ? 'selected' : '' }}>Objections</option>
                     </select>
 
                     <input

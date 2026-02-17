@@ -44,9 +44,10 @@ class NotesLibraryController extends Controller
             });
         }
 
-        // Note type filter (overall, snippet, objection)
-        if ($request->filled('note_type')) {
-            switch ($request->note_type) {
+        // Note type filter (overall, snippet, objection) — default to snippet on fresh page load
+        $noteType = $request->has('note_type') ? $request->input('note_type') : 'snippet';
+        if ($noteType) {
+            switch ($noteType) {
                 case 'overall':
                     $query->whereNull('line_index_start');
                     break;
@@ -86,7 +87,8 @@ class NotesLibraryController extends Controller
             'notes',
             'categories',
             'reps',
-            'stats'
+            'stats',
+            'noteType'
         ));
     }
 }
