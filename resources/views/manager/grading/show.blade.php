@@ -863,7 +863,10 @@
         }
 
         window.addEventListener('beforeunload', () => {
-            const data = JSON.stringify({ page_seconds: getPageSeconds() });
+            const data = JSON.stringify({
+                page_seconds: getPageSeconds(),
+                playback_seconds: Math.floor(state.playbackSeconds),
+            });
             navigator.sendBeacon(
                 '{{ route("manager.calls.page-time", $call) }}',
                 new Blob([data], { type: 'application/json' })

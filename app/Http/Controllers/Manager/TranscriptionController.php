@@ -189,6 +189,12 @@ class TranscriptionController extends Controller
     public function logPageTime(Request $request, Call $call)
     {
         $pageSeconds = min((int) $request->input('page_seconds', 0), CallInteraction::PAGE_SECONDS_CAP);
+        $playbackSeconds = max(0, (int) $request->input('playback_seconds', 0));
+
+        $update = ['page_seconds' => $pageSeconds];
+        if ($playbackSeconds > 0) {
+            $update['metadata'] = json_encode(['playback_seconds' => $playbackSeconds]);
+        }
 
         // Update the most recent 'opened' interaction for this user/call
         CallInteraction::where('call_id', $call->id)
@@ -196,7 +202,7 @@ class TranscriptionController extends Controller
             ->where('action', 'opened')
             ->latest('created_at')
             ->take(1)
-            ->update(['page_seconds' => $pageSeconds]);
+            ->update($update);
 
         return response()->noContent();
     }

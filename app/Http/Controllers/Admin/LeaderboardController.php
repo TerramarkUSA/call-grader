@@ -92,7 +92,8 @@ class LeaderboardController extends Controller
             DB::raw("SUM(CASE WHEN action = 'skipped' THEN 1 ELSE 0 END) as skipped_count"),
             DB::raw("SUM(CASE WHEN action = 'abandoned' THEN 1 ELSE 0 END) as abandoned_count"),
             DB::raw("COALESCE(SUM(page_seconds), 0) as total_page_seconds"),
-            DB::raw("COALESCE(SUM(CASE WHEN action = 'skipped' THEN json_extract(metadata, '$.playback_seconds') ELSE 0 END), 0) as skipped_playback_seconds")
+            DB::raw("COALESCE(SUM(CASE WHEN action = 'skipped' THEN json_extract(metadata, '$.playback_seconds') ELSE 0 END), 0) as skipped_playback_seconds"),
+            DB::raw("COALESCE(SUM(CASE WHEN action = 'opened' THEN json_extract(metadata, '$.playback_seconds') ELSE 0 END), 0) as opened_playback_seconds")
         )
             ->groupBy('user_id')
             ->get()
@@ -109,6 +110,7 @@ class LeaderboardController extends Controller
             $user->abandoned_count = $interaction->abandoned_count ?? 0;
             $user->total_page_seconds = $interaction->total_page_seconds ?? 0;
             $user->skipped_playback_seconds = $interaction->skipped_playback_seconds ?? 0;
+            $user->opened_playback_seconds = $interaction->opened_playback_seconds ?? 0;
 
             // Completion % = graded / (graded + skipped + abandoned)
             $totalDecisions = $user->grades_count + $user->skipped_count + $user->abandoned_count;

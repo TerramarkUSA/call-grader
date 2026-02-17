@@ -77,8 +77,8 @@
                         <tr class="bg-gray-50">
                             <th class="px-4 py-2"></th>
                             <th colspan="5" class="px-4 py-2 text-center text-xs font-semibold text-blue-700 uppercase bg-blue-50 border-l border-r border-blue-100">Volume</th>
-                            <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-amber-700 uppercase bg-amber-50 border-r border-amber-100">Effort</th>
-                            <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-green-700 uppercase bg-green-50 border-r border-green-100">Quality</th>
+                            <th colspan="2" class="px-4 py-2 text-center text-xs font-semibold text-amber-700 uppercase bg-amber-50 border-r border-amber-100">Effort</th>
+                            <th colspan="4" class="px-4 py-2 text-center text-xs font-semibold text-green-700 uppercase bg-green-50 border-r border-green-100">Quality</th>
                         </tr>
                         <!-- Column Headers -->
                         <tr class="bg-gray-50 border-t">
@@ -91,9 +91,9 @@
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-blue-50/50 border-r border-blue-100">Completion</th>
                             {{-- Effort --}}
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50">Page Time</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50">Playback %</th>
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-amber-50/50 border-r border-amber-100">Total Playback</th>
                             {{-- Quality --}}
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Graded Playback %</th>
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Avg Score</th>
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50">Notes</th>
                             <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-green-50/50 border-r border-green-100">Flagged</th>
@@ -140,15 +140,8 @@
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 bg-amber-50/20">
-                                    @if($manager->grades_count > 0)
-                                        <span class="text-sm text-gray-600">{{ $manager->avg_playback_ratio }}%</span>
-                                    @else
-                                        <span class="text-sm text-gray-400">&mdash;</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3 bg-amber-50/20">
                                     @php
-                                        $combinedPlayback = $manager->total_playback_seconds + $manager->skipped_playback_seconds;
+                                        $combinedPlayback = $manager->total_playback_seconds + $manager->skipped_playback_seconds + $manager->opened_playback_seconds;
                                     @endphp
                                     @if($combinedPlayback > 0)
                                         @php
@@ -162,6 +155,13 @@
                                 </td>
 
                                 {{-- Quality --}}
+                                <td class="px-3 py-3 bg-green-50/20">
+                                    @if($manager->grades_count > 0)
+                                        <span class="text-sm text-gray-600">{{ $manager->avg_playback_ratio }}%</span>
+                                    @else
+                                        <span class="text-sm text-gray-400">&mdash;</span>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-3 bg-green-50/20">
                                     @if($manager->grades_count > 0)
                                         @php
