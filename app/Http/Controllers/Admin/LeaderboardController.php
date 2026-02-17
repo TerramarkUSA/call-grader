@@ -17,18 +17,20 @@ class LeaderboardController extends Controller
     public function index(Request $request)
     {
         $period = $request->get('period', 'week');
+        $tz = 'America/New_York';
 
         $dateFrom = match ($period) {
-            'today' => Carbon::today(),
-            'yesterday' => Carbon::yesterday(),
-            'week' => Carbon::now()->startOfWeek(),
-            'month' => Carbon::now()->startOfMonth(),
-            'quarter' => Carbon::now()->startOfQuarter(),
+            'today' => Carbon::now($tz)->startOfDay()->utc(),
+            'yesterday' => Carbon::yesterday($tz)->startOfDay()->utc(),
+            'week' => Carbon::now($tz)->startOfWeek()->utc(),
+            'month' => Carbon::now($tz)->startOfMonth()->utc(),
+            'quarter' => Carbon::now($tz)->startOfQuarter()->utc(),
             default => Carbon::now()->subYears(10),
         };
 
         $dateTo = match ($period) {
-            'yesterday' => Carbon::today(),
+            'today' => Carbon::now($tz)->endOfDay()->utc(),
+            'yesterday' => Carbon::now($tz)->startOfDay()->utc(),
             default => null,
         };
 

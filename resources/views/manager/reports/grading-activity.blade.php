@@ -62,7 +62,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <h3 class="font-medium text-gray-900 mb-4">Daily Activity</h3>
             @php
-                $maxDaily = max(array_values($activityData)) ?: 1;
+                $maxDaily = count($activityData) > 0 ? (max(array_values($activityData)) ?: 1) : 1;
                 $dates = array_keys($activityData);
             @endphp
             <div class="h-64 flex items-end gap-0.5">
@@ -85,7 +85,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="font-medium text-gray-900 mb-4">Time of Day</h3>
                 @php
-                    $maxHourly = max(array_values($hourlyDistribution)) ?: 1;
+                    $maxHourly = count($hourlyDistribution) > 0 ? (max(array_values($hourlyDistribution)) ?: 1) : 1;
                 @endphp
                 <div class="h-32 flex items-end gap-0.5">
                     @for($hour = 0; $hour < 24; $hour++)
@@ -112,7 +112,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="font-medium text-gray-900 mb-4">Day of Week</h3>
                 @php
-                    $maxDay = max(array_values($dayOfWeekDistribution)) ?: 1;
+                    $maxDay = count($dayOfWeekDistribution) > 0 ? (max(array_values($dayOfWeekDistribution)) ?: 1) : 1;
                     $dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 @endphp
                 <div class="space-y-2">

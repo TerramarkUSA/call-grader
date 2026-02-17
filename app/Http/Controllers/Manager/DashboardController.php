@@ -134,17 +134,22 @@ class DashboardController extends Controller
         ];
 
         // Grading leaderboard — today, yesterday, this week
-        $yesterday = Carbon::yesterday();
-        $today = Carbon::today();
+        // Use Eastern time for day boundaries since that's where the team operates
+        $tz = 'America/New_York';
+        $todayStart = Carbon::now($tz)->startOfDay()->utc();
+        $todayEnd = Carbon::now($tz)->endOfDay()->utc();
+        $yesterdayStart = Carbon::yesterday($tz)->startOfDay()->utc();
+        $yesterdayEnd = Carbon::yesterday($tz)->endOfDay()->utc();
+        $weekStart = Carbon::now($tz)->startOfWeek()->utc();
 
         $gradingLeaderboard = Grade::where('status', 'submitted')
-            ->where('grading_completed_at', '>=', $startOfWeek)
+            ->where('grading_completed_at', '>=', $weekStart)
             ->join('users', 'grades.graded_by', '=', 'users.id')
             ->select(
                 'users.id',
                 'users.name',
-                DB::raw("SUM(CASE WHEN DATE(grading_completed_at) = '{$today->toDateString()}' THEN 1 ELSE 0 END) as today_count"),
-                DB::raw("SUM(CASE WHEN DATE(grading_completed_at) = '{$yesterday->toDateString()}' THEN 1 ELSE 0 END) as yesterday_count"),
+                DB::raw("SUM(CASE WHEN grading_completed_at >= '{$todayStart->toDateTimeString()}' AND grading_completed_at <= '{$todayEnd->toDateTimeString()}' THEN 1 ELSE 0 END) as today_count"),
+                DB::raw("SUM(CASE WHEN grading_completed_at >= '{$yesterdayStart->toDateTimeString()}' AND grading_completed_at <= '{$yesterdayEnd->toDateTimeString()}' THEN 1 ELSE 0 END) as yesterday_count"),
                 DB::raw('COUNT(*) as week_count')
             )
             ->groupBy('users.id', 'users.name')

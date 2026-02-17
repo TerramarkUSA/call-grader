@@ -167,14 +167,15 @@ class CallSyncService
     protected function extractRingTime(array $ctmCall): int
     {
         // CTM may return ring_time, ring_duration, or ring_time_seconds
+        // CTM uses -1 to indicate "no data" — clamp to 0 for unsignedInteger column
         if (isset($ctmCall['ring_time'])) {
-            return $this->parseTimeToSeconds($ctmCall['ring_time']);
+            return max(0, $this->parseTimeToSeconds($ctmCall['ring_time']));
         }
         if (isset($ctmCall['ring_time_seconds'])) {
-            return (int) $ctmCall['ring_time_seconds'];
+            return max(0, (int) $ctmCall['ring_time_seconds']);
         }
         if (isset($ctmCall['ring_duration'])) {
-            return $this->parseTimeToSeconds($ctmCall['ring_duration']);
+            return max(0, $this->parseTimeToSeconds($ctmCall['ring_duration']));
         }
         return 0;
     }
