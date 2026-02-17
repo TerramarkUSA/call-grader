@@ -123,42 +123,47 @@ class RubricSeeder extends Seeder
             RubricCategory::create($category);
         }
 
-        // 7 Positive Checkpoints
+        // 8 Positive Checkpoints
         $positiveCheckpoints = [
+            [
+                'external_id' => 'handled_location_properly',
+                'name' => 'Handled location properly',
+                'sort_order' => 1,
+            ],
             [
                 'external_id' => 'asked_discovery_questions',
                 'name' => 'Asked discovery questions',
-                'sort_order' => 1,
+                'sort_order' => 2,
             ],
             [
                 'external_id' => 'captured_contact_info',
                 'name' => 'Captured contact info',
-                'sort_order' => 2,
+                'sort_order' => 3,
             ],
             [
                 'external_id' => 'gave_got_information',
                 'name' => 'Gave information, Got information',
-                'sort_order' => 3,
+                'sort_order' => 4,
             ],
             [
                 'external_id' => 'asked_for_appointment',
                 'name' => 'Asked for appointment',
-                'sort_order' => 4,
+                'sort_order' => 5,
             ],
             [
                 'external_id' => 'explained_full_sale',
                 'name' => 'Explained full sale',
-                'sort_order' => 5,
+                'sort_order' => 6,
             ],
             [
                 'external_id' => 'confirmed_next_steps',
                 'name' => 'Confirmed next steps',
-                'sort_order' => 6,
+                'sort_order' => 7,
             ],
             [
                 'external_id' => 'sold_company',
                 'name' => 'Sold Company',
-                'sort_order' => 7,
+                'sort_order' => 8,
             ],
         ];
 
