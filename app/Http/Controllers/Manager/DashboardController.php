@@ -7,6 +7,7 @@ use App\Models\Call;
 use App\Models\Grade;
 use App\Models\CoachingNote;
 use App\Models\GradeCategoryScore;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -132,6 +133,25 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
+        // Grading leaderboard — today, yesterday, this week
+        $yesterday = Carbon::yesterday();
+        $today = Carbon::today();
+
+        $gradingLeaderboard = Grade::where('status', 'submitted')
+            ->where('grading_completed_at', '>=', $startOfWeek)
+            ->join('users', 'grades.graded_by', '=', 'users.id')
+            ->select(
+                'users.id',
+                'users.name',
+                DB::raw("SUM(CASE WHEN DATE(grading_completed_at) = '{$today->toDateString()}' THEN 1 ELSE 0 END) as today_count"),
+                DB::raw("SUM(CASE WHEN DATE(grading_completed_at) = '{$yesterday->toDateString()}' THEN 1 ELSE 0 END) as yesterday_count"),
+                DB::raw('COUNT(*) as week_count')
+            )
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('today_count')
+            ->orderByDesc('week_count')
+            ->get();
+
         return view('manager.dashboard.index', [
             'gradingStats' => $gradingStats,
             'avgScore' => round($avgScore ?? 0, 1),
@@ -143,6 +163,7 @@ class DashboardController extends Controller
             'bottomReps' => $bottomReps,
             'weakestCategories' => $weakestCategories,
             'notesStats' => $notesStats,
+            'gradingLeaderboard' => $gradingLeaderboard,
         ]);
     }
 }

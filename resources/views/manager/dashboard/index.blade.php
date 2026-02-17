@@ -112,6 +112,44 @@
                     </div>
                 @endif
 
+                <!-- Grading Leaderboard -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-4 pt-4 pb-2">
+                        <h3 class="text-lg font-semibold text-gray-900">Grading Leaderboard</h3>
+                        <p class="text-xs text-gray-500">This week's grading volume</p>
+                    </div>
+                    @if($gradingLeaderboard->count() > 0)
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-t border-b border-gray-100">
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Manager</th>
+                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500">Today</th>
+                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500">Yesterday</th>
+                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 pr-4">Week</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @foreach($gradingLeaderboard as $index => $manager)
+                                    <tr class="{{ $index === 0 && $manager->today_count > 0 ? 'bg-amber-50/60 border-l-2 border-l-amber-400' : '' }}">
+                                        <td class="px-4 py-2 text-sm text-gray-900 truncate max-w-[120px]">{{ $manager->name }}</td>
+                                        <td class="px-2 py-2 text-sm text-right {{ $index === 0 && $manager->today_count > 0 ? 'font-bold text-gray-900' : 'text-gray-600' }}">
+                                            {{ $manager->today_count ?: '—' }}
+                                        </td>
+                                        <td class="px-2 py-2 text-sm text-right text-gray-600">
+                                            {{ $manager->yesterday_count ?: '—' }}
+                                        </td>
+                                        <td class="px-2 py-2 text-sm text-right text-gray-600 pr-4">{{ $manager->week_count }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <div class="px-4 pb-4 pt-2">
+                            <p class="text-sm text-gray-500">No grades this week yet.</p>
+                        </div>
+                    @endif
+                </div>
+
                 <!-- Top Performers -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">Top Performers</h3>
