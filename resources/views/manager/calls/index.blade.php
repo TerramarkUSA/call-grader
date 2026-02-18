@@ -427,8 +427,24 @@
                                 </span>
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap sticky right-0 bg-white">
-                                @php $gradingStatus = $call->grading_status; @endphp
-                                @if($gradingStatus === 'needs_processing' && $call->talk_time < 60)
+                                @php
+                                    $gradingStatus = $call->grading_status;
+                                    $myGrade = $call->grades->where('graded_by', auth()->id())->first();
+                                    $myStatus = $myGrade?->status;
+                                @endphp
+                                @if($gradingStatus === 'skipped')
+                                    <span class="inline-flex items-center justify-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg">
+                                        Skipped
+                                    </span>
+                                    @if(in_array(auth()->user()->role, ['system_admin', 'site_admin']))
+                                        <form method="POST" action="{{ route('manager.calls.restore', $call) }}" class="inline ml-1">
+                                            @csrf
+                                            <button type="submit" class="text-xs text-blue-600 hover:underline" onclick="return confirm('Restore this call to the queue?')">
+                                                Restore
+                                            </button>
+                                        </form>
+                                    @endif
+                                @elseif($gradingStatus === 'needs_processing' && $call->talk_time < 60)
                                     {{-- Short call: Preview modal --}}
                                     <button
                                         type="button"
@@ -457,29 +473,20 @@
                                     >
                                         Process
                                     </button>
-                                @elseif($gradingStatus === 'ready')
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
-                                        Grade
+                                @elseif($myStatus === 'submitted')
+                                    {{-- I graded this call --}}
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
+                                        Graded ✓
                                     </a>
-                                @elseif($gradingStatus === 'in_progress')
+                                @elseif($myStatus === 'draft')
+                                    {{-- I have a draft --}}
                                     <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-200 transition-colors">
                                         In Progress
                                     </a>
-                                @elseif($gradingStatus === 'skipped')
-                                    <span class="inline-flex items-center justify-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg">
-                                        Skipped
-                                    </span>
-                                    @if(in_array(auth()->user()->role, ['system_admin', 'site_admin']))
-                                        <form method="POST" action="{{ route('manager.calls.restore', $call) }}" class="inline ml-1">
-                                            @csrf
-                                            <button type="submit" class="text-xs text-blue-600 hover:underline" onclick="return confirm('Restore this call to the queue?')">
-                                                Restore
-                                            </button>
-                                        </form>
-                                    @endif
                                 @else
-                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
-                                        Graded ✓
+                                    {{-- Transcribed but I haven't graded — show Grade regardless of others --}}
+                                    <a href="{{ route('manager.calls.grade', $call) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors">
+                                        Grade
                                     </a>
                                 @endif
                             </td>
