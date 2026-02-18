@@ -143,6 +143,15 @@
                         Admin &rarr;
                     </a>
                 @endif
+                <a
+                    href="{{ route('manager.updates') }}"
+                    class="relative px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                    What's New
+                    @if(\App\Http\Controllers\Manager\UpdatesController::hasUnseenUpdates())
+                        <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full"></span>
+                    @endif
+                </a>
                 <button
                     onclick="document.getElementById('feedback-modal').classList.remove('hidden')"
                     class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
