@@ -40,45 +40,59 @@
                         Calls
                     </a>
 
-                    <a
-                        href="{{ route('manager.graded-calls') }}"
-                        class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.graded-calls') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
-                    >
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Graded
-                    </a>
+                    <!-- Coaching Dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button
+                            @click="open = !open"
+                            @click.away="open = false"
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.graded-calls') || request()->routeIs('manager.notes-library') || request()->routeIs('manager.objections') || request()->routeIs('manager.golden-moments') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
+                        >
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Coaching
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
 
-                    <a
-                        href="{{ route('manager.notes-library') }}"
-                        class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.notes-library') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
-                    >
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Notes
-                    </a>
-
-                    <a
-                        href="{{ route('manager.objections') }}"
-                        class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.objections') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
-                    >
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Objections
-                    </a>
-
-                    <a
-                        href="{{ route('manager.golden-moments') }}"
-                        class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('manager.golden-moments') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}"
-                    >
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                        </svg>
-                        Golden
-                    </a>
+                        <div
+                            x-show="open"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute left-0 mt-1 w-48 bg-white rounded-xl shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5 border border-gray-200"
+                            style="display: none;"
+                        >
+                            <a
+                                href="{{ route('manager.graded-calls') }}"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 {{ request()->routeIs('manager.graded-calls') ? 'bg-gray-50 font-medium' : '' }}"
+                            >
+                                Graded Calls
+                            </a>
+                            <a
+                                href="{{ route('manager.notes-library') }}"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 {{ request()->routeIs('manager.notes-library') ? 'bg-gray-50 font-medium' : '' }}"
+                            >
+                                Notes
+                            </a>
+                            <a
+                                href="{{ route('manager.objections') }}"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 {{ request()->routeIs('manager.objections') ? 'bg-gray-50 font-medium' : '' }}"
+                            >
+                                Objections
+                            </a>
+                            <a
+                                href="{{ route('manager.golden-moments') }}"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 {{ request()->routeIs('manager.golden-moments') ? 'bg-gray-50 font-medium' : '' }}"
+                            >
+                                ⭐ Golden Moments
+                            </a>
+                        </div>
+                    </div>
 
                     <!-- Reports Dropdown -->
                     <div class="relative" x-data="{ open: false }">
@@ -190,6 +204,10 @@
             >
                 Calls
             </a>
+        </div>
+        <!-- Mobile Coaching Links -->
+        <div class="flex flex-wrap justify-center gap-1 py-2 px-2 border-t border-gray-100 bg-gray-50">
+            <span class="text-xs text-gray-400 w-full text-center mb-1">Coaching</span>
             <a
                 href="{{ route('manager.graded-calls') }}"
                 class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ request()->routeIs('manager.graded-calls') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900' }}"
