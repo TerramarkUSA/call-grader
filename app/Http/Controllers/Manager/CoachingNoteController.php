@@ -48,6 +48,7 @@ class CoachingNoteController extends Controller
             'is_objection' => 'boolean',
             'objection_type_id' => 'nullable|required_if:is_objection,true|exists:objection_types,id',
             'objection_outcome' => 'nullable|required_if:is_objection,true|in:overcame,failed',
+            'is_exemplar' => 'boolean',
         ]);
 
         // Find or get the current grade for this call by this manager
@@ -92,6 +93,7 @@ class CoachingNoteController extends Controller
             'is_objection' => $validated['is_objection'] ?? false,
             'objection_type_id' => $validated['objection_type_id'] ?? null,
             'objection_outcome' => $validated['objection_outcome'] ?? null,
+            'is_exemplar' => $validated['is_exemplar'] ?? false,
         ]);
 
         $note->load(['category:id,name', 'objectionType:id,name']);
@@ -115,6 +117,7 @@ class CoachingNoteController extends Controller
             'is_objection' => 'boolean',
             'objection_type_id' => 'nullable|exists:objection_types,id',
             'objection_outcome' => 'nullable|in:overcame,failed',
+            'is_exemplar' => 'boolean',
         ]);
 
         $note->update($validated);
@@ -128,7 +131,7 @@ class CoachingNoteController extends Controller
      */
     public function destroy(CoachingNote $note)
     {
-        if ($note->author_id !== Auth::id()) {
+        if ($note->author_id !== Auth::id() && Auth::user()->role !== 'site_admin') {
             abort(403, 'You can only delete your own notes.');
         }
 

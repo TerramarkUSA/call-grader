@@ -810,6 +810,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="border rounded-xl p-4 bg-amber-50/50">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="is-golden-checkbox" class="rounded border-gray-300 text-amber-500 focus:ring-amber-500"/>
+                            <span class="text-sm font-medium text-gray-700">⭐ Golden Moment</span>
+                        </label>
+                        <p id="golden-helper-text" class="mt-1.5 pl-6 text-xs text-gray-400 hidden">This note will be visible to all managers in your office.</p>
+                    </div>
                 </div>
 
                 <div class="px-6 py-4 border-t flex justify-end gap-3">
@@ -1912,6 +1920,7 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         ${categoryTag}
                         ${note.is_objection ? '<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700">Objection</span>' : ''}
+                        ${note.is_exemplar ? '<span class="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700">⭐ Golden</span>' : ''}
                         ${timestampLabel}
                     </div>
                 </div>`;
@@ -1961,6 +1970,8 @@
             document.getElementById('objection-details').classList.add('hidden');
             document.getElementById('objection-type-select').value = '';
             resetOutcomeButtons();
+            document.getElementById('is-golden-checkbox').checked = false;
+            document.getElementById('golden-helper-text').classList.add('hidden');
 
             // Show existing notes for this line range
             const existingContainer = document.getElementById('modal-existing-notes');
@@ -2009,6 +2020,15 @@
             }
         });
 
+        document.getElementById('is-golden-checkbox').addEventListener('change', function() {
+            const helperText = document.getElementById('golden-helper-text');
+            if (this.checked) {
+                helperText.classList.remove('hidden');
+            } else {
+                helperText.classList.add('hidden');
+            }
+        });
+
         function setObjectionOutcome(outcome) {
             state.objectionOutcome = outcome;
             const overcameBtn = document.getElementById('outcome-overcame-btn');
@@ -2038,6 +2058,7 @@
             const categoryId = document.getElementById('note-category-select').value || null;
             const isObjection = document.getElementById('is-objection-checkbox').checked;
             const objectionTypeId = document.getElementById('objection-type-select').value || null;
+            const isGolden = document.getElementById('is-golden-checkbox').checked;
 
             if (!noteText) {
                 alert('Please enter a note.');
@@ -2073,6 +2094,7 @@
                         is_objection: isObjection,
                         objection_type_id: isObjection ? objectionTypeId : null,
                         objection_outcome: isObjection ? state.objectionOutcome : null,
+                        is_exemplar: isGolden,
                     }),
                 });
 

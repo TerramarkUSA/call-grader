@@ -4,6 +4,7 @@ use App\Http\Controllers\Manager\CallAnalyticsController;
 use App\Http\Controllers\Manager\CallQueueController;
 use App\Http\Controllers\Manager\CoachingNoteController;
 use App\Http\Controllers\Manager\DashboardController;
+use App\Http\Controllers\Manager\GoldenMomentsController;
 use App\Http\Controllers\Manager\GradedCallsController;
 use App\Http\Controllers\Manager\GradingController;
 use App\Http\Controllers\Manager\NotesLibraryController;
@@ -76,5 +77,6 @@ Route::middleware(['auth', 'role:system_admin,site_admin,manager', 'has.account'
     Route::get('/graded-calls', [GradedCallsController::class, 'index'])->name('graded-calls');
     Route::get('/notes-library', [NotesLibraryController::class, 'index'])->name('notes-library');
     Route::get('/objections', [ObjectionsLibraryController::class, 'index'])->name('objections');
+    Route::get('/golden-moments', [GoldenMomentsController::class, 'index'])->name('golden-moments');
 
 });
