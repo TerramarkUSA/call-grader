@@ -51,6 +51,8 @@ class TranscriptionController extends Controller
     {
         $this->authorize('transcribe', $call);
 
+        set_time_limit(300);
+
         // Already transcribed?
         if ($call->transcript) {
             return response()->json([
@@ -132,7 +134,7 @@ class TranscriptionController extends Controller
     protected function downloadRecording(Call $call, string $url): ?string
     {
         try {
-            $response = Http::timeout(60)->get($url);
+            $response = Http::timeout(120)->get($url);
 
             if (!$response->successful()) {
                 return null;

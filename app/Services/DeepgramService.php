@@ -82,7 +82,7 @@ class DeepgramService
                 'Authorization' => 'Token ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ])
-            ->timeout(120)
+            ->timeout(300)
             ->post($this->baseUrl . '/listen?' . http_build_query($params), [
                 'url' => $audioUrl,
             ]);
@@ -133,7 +133,7 @@ class DeepgramService
                 'Authorization' => 'Token ' . $this->apiKey,
                 'Content-Type' => $mimeType,
             ])
-            ->timeout(120)
+            ->timeout(300)
             ->withBody(file_get_contents($filePath), $mimeType)
             ->post($this->baseUrl . '/listen?' . http_build_query($params));
 

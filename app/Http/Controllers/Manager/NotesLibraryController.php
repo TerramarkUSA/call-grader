@@ -14,6 +14,7 @@ class NotesLibraryController extends Controller
     public function index(Request $request)
     {
         $query = CoachingNote::where('author_id', Auth::id())
+            ->where('is_exemplar', false)
             ->with([
                 'category:id,name',
                 'objectionType:id,name',
@@ -76,11 +77,12 @@ class NotesLibraryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        // Stats
+        // Stats (exclude golden moments)
+        $baseQuery = CoachingNote::where('author_id', Auth::id())->where('is_exemplar', false);
         $stats = [
-            'total_notes' => CoachingNote::where('author_id', Auth::id())->count(),
-            'overall_notes' => CoachingNote::where('author_id', Auth::id())->whereNull('line_index_start')->count(),
-            'objections' => CoachingNote::where('author_id', Auth::id())->where('is_objection', true)->count(),
+            'total_notes' => (clone $baseQuery)->count(),
+            'overall_notes' => (clone $baseQuery)->whereNull('line_index_start')->count(),
+            'objections' => (clone $baseQuery)->where('is_objection', true)->count(),
         ];
 
         return view('manager.notes-library.index', compact(
