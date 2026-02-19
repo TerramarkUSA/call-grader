@@ -78,8 +78,30 @@ class GradingController extends Controller
         // Transcript is automatically decoded via model cast
         // Extract utterances array from transcript data
         $transcriptData = $call->transcript ?? [];
-        $transcript = $transcriptData['utterances'] ?? [];
         $isMultichannel = $transcriptData['multichannel'] ?? false;
+
+        // Normalize transcript: ensure we have an array of utterance objects { speaker, text, start, end }
+        $rawUtterances = $transcriptData['utterances'] ?? [];
+        if (is_string($transcriptData)) {
+            // Legacy: transcript stored as plain text
+            $transcript = [['speaker' => 0, 'text' => $transcriptData, 'start' => 0, 'end' => 0]];
+        } elseif (!is_array($rawUtterances)) {
+            $transcript = [];
+        } else {
+            $transcript = [];
+            foreach ($rawUtterances as $i => $u) {
+                if (is_array($u) && isset($u['text'])) {
+                    $transcript[] = [
+                        'speaker' => (int) ($u['speaker'] ?? 0),
+                        'text' => (string) ($u['text'] ?? ''),
+                        'start' => (float) ($u['start'] ?? 0),
+                        'end' => (float) ($u['end'] ?? 0),
+                    ];
+                } elseif (is_string($u)) {
+                    $transcript[] = ['speaker' => 0, 'text' => $u, 'start' => 0, 'end' => 0];
+                }
+            }
+        }
         $speakersSwapped = (bool) $call->speakers_swapped;
 
         // Determine suggested outcome from Salesforce data
