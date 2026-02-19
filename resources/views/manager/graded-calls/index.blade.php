@@ -106,6 +106,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Rep</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Project</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Call Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Length</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Score</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Quality</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Graded By</th>
@@ -119,6 +120,13 @@
                             <td class="px-4 py-4 text-sm font-medium text-gray-900">{{ $grade->call?->rep?->name ?? 'Unknown' }}</td>
                             <td class="px-4 py-4 text-sm text-gray-500">{{ $grade->call?->project?->name ?? 'Unknown' }}</td>
                             <td class="px-4 py-4 text-sm text-gray-500">{{ $grade->call?->called_at?->format('M j, Y') ?? '-' }}</td>
+                            <td class="px-4 py-4 text-sm text-gray-500">
+                                @if($grade->call?->talk_time)
+                                    {{ floor($grade->call->talk_time / 60) }}:{{ str_pad($grade->call->talk_time % 60, 2, '0', STR_PAD_LEFT) }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td class="px-4 py-4">
                                 @php
                                     $score = $grade->overall_score ?? 0;
@@ -160,7 +168,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500">
+                            <td colspan="9" class="px-4 py-8 text-center text-sm text-gray-500">
                                 No graded calls found.
                             </td>
                         </tr>
