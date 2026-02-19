@@ -12,19 +12,27 @@ class UpdatesController extends Controller
 
     public function index()
     {
-        Auth::user()->update(['last_seen_updates_at' => now()]);
+        try {
+            Auth::user()->update(['last_seen_updates_at' => now()]);
+        } catch (\Throwable $e) {
+            // Column may not exist yet if migration hasn't run
+        }
 
         return view('manager.updates.index');
     }
 
     public static function hasUnseenUpdates(): bool
     {
-        $user = Auth::user();
-        if (!$user) return false;
+        try {
+            $user = Auth::user();
+            if (!$user) return false;
 
-        $lastSeen = $user->last_seen_updates_at;
-        if (!$lastSeen) return true;
+            $lastSeen = $user->last_seen_updates_at;
+            if (!$lastSeen) return true;
 
-        return $lastSeen->lt(self::LATEST_UPDATE);
+            return $lastSeen->lt(self::LATEST_UPDATE);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }
