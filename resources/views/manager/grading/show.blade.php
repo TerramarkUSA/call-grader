@@ -278,6 +278,19 @@
                             if ($currentGroup !== null) {
                                 $mergedTranscript[] = $currentGroup;
                             }
+
+                            // If all utterances merged into one block (e.g. single speaker), show each utterance as its own segment so we keep timestamps and add-note buttons
+                            if (count($mergedTranscript) === 1 && count($transcript) > 1) {
+                                $mergedTranscript = array_map(function ($utterance, $index) {
+                                    return [
+                                        'speaker' => (int) ($utterance['speaker'] ?? 0),
+                                        'text' => $utterance['text'] ?? '',
+                                        'start' => (float) ($utterance['start'] ?? 0),
+                                        'end' => (float) ($utterance['end'] ?? 0),
+                                        'indices' => [$index],
+                                    ];
+                                }, $transcript, array_keys($transcript));
+                            }
                         @endphp
 
                         @forelse($mergedTranscript as $groupIndex => $group)
